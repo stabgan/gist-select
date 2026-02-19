@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gist-select"
+version = "0.1.0"
+description = "GIST: Greedy Independent Set Thresholding for Max-Min Diversification with Submodular Utility"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10"]
+
+[project.optional-dependencies]
+parallel = ["joblib>=1.3"]
+dev = ["pytest>=7.0", "joblib>=1.3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
