@@ -7,6 +7,15 @@ build/
 .pytest_cache/
 *.egg
 
+# Hypothesis database
+.hypothesis/
+
+# Kiro IDE workspace
+.kiro/
+
+# macOS
+.DS_Store
+
 # Project-local files
 *.pdf
 *.md
