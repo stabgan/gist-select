@@ -106,6 +106,52 @@ class CallableDistance(DistanceMetric):
         return self._fn(points[source], points[targets])
 
 
+def exact_diameter(
+    points: npt.NDArray[np.floating],
+    metric: DistanceMetric,
+) -> tuple[float, int, int]:
+    """Exact diameter via exhaustive O(n²) pairwise distance computation.
+
+    Returns the true maximum pairwise distance and the pair of indices
+    that achieve it.  Guarantees the theoretical approximation bounds
+    from the paper hold exactly, at the cost of O(n²) distance calls.
+
+    Suitable for small datasets (n ≲ 50 000).  For large datasets, prefer
+    :func:`approximate_diameter` which runs in O(n) time.
+
+    Parameters
+    ----------
+    points : ndarray, shape ``(n, d)``
+        Preprocessed data points (after ``metric.prepare``).
+    metric : DistanceMetric
+        Distance metric to use.
+
+    Returns
+    -------
+    tuple of (d_max, idx_u, idx_v)
+    """
+    n = len(points)
+    if n <= 1:
+        return 0.0, 0, 0
+
+    best_dist = -1.0
+    best_u = 0
+    best_v = 0
+    all_indices = np.arange(n, dtype=np.intp)
+
+    for i in range(n - 1):
+        targets = all_indices[i + 1 :]
+        dists = metric.from_point(points, i, targets)
+        j_local = int(np.argmax(dists))
+        d = float(dists[j_local])
+        if d > best_dist:
+            best_dist = d
+            best_u = i
+            best_v = int(targets[j_local])
+
+    return best_dist, best_u, best_v
+
+
 def approximate_diameter(
     points: npt.NDArray[np.floating],
     metric: DistanceMetric,

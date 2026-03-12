@@ -4,6 +4,8 @@ from .distances import (
     CosineDistance,
     DistanceMetric,
     EuclideanDistance,
+    approximate_diameter,
+    exact_diameter,
 )
 from .objectives import CoverageFunction, LinearUtility, SubmodularFunction
 
@@ -17,4 +19,6 @@ __all__ = [
     "EuclideanDistance",
     "CosineDistance",
     "CallableDistance",
+    "approximate_diameter",
+    "exact_diameter",
 ]

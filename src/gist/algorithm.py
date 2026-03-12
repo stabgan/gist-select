@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
 
-from .distances import DistanceMetric, approximate_diameter
+from .distances import DistanceMetric, approximate_diameter, exact_diameter as _exact_diameter
 from .objectives import SubmodularFunction
 
 
@@ -134,6 +134,7 @@ def gist(
     n_jobs: int = 1,
     seed: int | None = None,
     diameter: tuple[float, int, int] | None = None,
+    exact_diameter: bool = False,
 ) -> GISTResult:
     """GIST algorithm for max-min diversification with submodular utility.
 
@@ -163,7 +164,13 @@ def gist(
         Random seed for reproducibility.
     diameter : tuple, optional
         Pre-computed ``(d_max, idx_u, idx_v)``.  If ``None``, the
-        diameter is approximated via a multi-start double-scan.
+        diameter is computed according to ``exact_diameter``.
+    exact_diameter : bool
+        If ``True``, compute the exact diameter via O(n²) exhaustive
+        search.  This guarantees the paper's theoretical approximation
+        bounds hold exactly, but is only practical for small datasets
+        (n ≲ 50 000).  If ``False`` (default), use the fast multi-start
+        double-scan heuristic.  Ignored when ``diameter`` is provided.
 
     Returns
     -------
@@ -191,9 +198,12 @@ def gist(
     # --- Step 1: Classic greedy (d = 0) ------------------------------------
     best_sel, best_min_pw = _greedy_independent_set(points, utility, distance, 0.0, k)
 
-    # --- Step 2: Approximate diameter --------------------------------------
+    # --- Step 2: Diameter --------------------------------------------------
     if diameter is None:
-        d_max, u, v = approximate_diameter(points, distance, rng)
+        if exact_diameter:
+            d_max, u, v = _exact_diameter(points, distance)
+        else:
+            d_max, u, v = approximate_diameter(points, distance, rng)
     else:
         d_max, u, v = diameter
 
