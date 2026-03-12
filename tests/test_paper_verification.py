@@ -20,6 +20,7 @@ from gist.distances import (
     CosineDistance,
     EuclideanDistance,
     approximate_diameter,
+    exact_diameter,
 )
 from gist.objectives import CoverageFunction, LinearUtility
 
@@ -2561,3 +2562,567 @@ class TestEarlyStopping:
             f"Sequential (early stopping) objective {result_seq.objective_value} "
             f"!= full sweep objective {best_obj}"
         )
+
+
+# ---------------------------------------------------------------------------
+# TestExactDiameter — exact_diameter() correctness
+# ---------------------------------------------------------------------------
+
+
+class TestExactDiameter:
+    """Verify that exact_diameter() returns the true maximum pairwise distance.
+
+    Property 24: Exact Diameter Correctness
+    Property 25: Exact Diameter Consistency (returned d_max == dist(u, v))
+    Property 26: Exact Diameter Dominates Approximate Diameter
+
+    Validates: Requirements 19.1, 19.2, 19.3, 19.4
+    """
+
+    # -- Property 24: exact_diameter returns the true maximum (Req 19.1) --
+
+    @paper_verification_settings
+    @given(pts=random_points(n_max=12, d_max=5))
+    def test_exact_diameter_equals_true_max(self, pts):
+        """exact_diameter() must equal the brute-force maximum pairwise distance.
+
+        Validates: Requirements 19.1
+        """
+        metric = EuclideanDistance()
+        prepared = metric.prepare(pts.copy())
+
+        d_max, u, v = exact_diameter(prepared, metric)
+        true_max = _max_pairwise_distance(prepared, metric)
+
+        assert d_max == pytest.approx(true_max, rel=1e-9, abs=1e-12), (
+            f"exact_diameter returned {d_max} but true max is {true_max}"
+        )
+
+    # -- Property 25: returned d_max == dist(u, v) (Req 19.2) -------------
+
+    @paper_verification_settings
+    @given(pts=random_points(n_max=12, d_max=5))
+    def test_exact_diameter_consistency(self, pts):
+        """The returned d_max must equal dist(points[u], points[v]).
+
+        Validates: Requirements 19.2
+        """
+        metric = EuclideanDistance()
+        prepared = metric.prepare(pts.copy())
+
+        d_max, u, v = exact_diameter(prepared, metric)
+
+        all_idx = np.arange(len(prepared), dtype=np.intp)
+        dist_uv = float(metric.from_point(prepared, u, all_idx)[v])
+
+        assert d_max == pytest.approx(dist_uv, rel=1e-9, abs=1e-12), (
+            f"d_max={d_max} != dist(points[{u}], points[{v}])={dist_uv}"
+        )
+
+    # -- Property 26: exact >= approximate (Req 19.3) ----------------------
+
+    @paper_verification_settings
+    @given(pts=random_points(n_max=12, d_max=5))
+    def test_exact_diameter_geq_approximate(self, pts):
+        """exact_diameter() >= approximate_diameter() for all inputs.
+
+        The approximate heuristic can only underestimate; the exact result
+        is the true maximum, so it must be >= any approximation.
+
+        Validates: Requirements 19.3
+        """
+        metric = EuclideanDistance()
+        prepared = metric.prepare(pts.copy())
+
+        d_exact, _, _ = exact_diameter(prepared, metric)
+        d_approx, _, _ = approximate_diameter(prepared, metric, np.random.default_rng(42))
+
+        assert d_exact >= d_approx - 1e-9, (
+            f"exact_diameter={d_exact} < approximate_diameter={d_approx}"
+        )
+
+    # -- Unit: edge cases (Req 19.4) ---------------------------------------
+
+    def test_exact_diameter_single_point(self):
+        """exact_diameter on a single point returns (0.0, 0, 0).
+
+        Validates: Requirements 19.4
+        """
+        metric = EuclideanDistance()
+        pts = np.array([[3.0, 4.0]])
+        prepared = metric.prepare(pts)
+
+        d, u, v = exact_diameter(prepared, metric)
+
+        assert d == pytest.approx(0.0, abs=1e-12)
+        assert u == 0
+        assert v == 0
+
+    def test_exact_diameter_two_points(self):
+        """exact_diameter on two points returns their distance.
+
+        Validates: Requirements 19.4
+        """
+        metric = EuclideanDistance()
+        pts = np.array([[0.0, 0.0], [3.0, 4.0]])
+        prepared = metric.prepare(pts)
+
+        d, u, v = exact_diameter(prepared, metric)
+
+        assert d == pytest.approx(5.0, rel=1e-9)
+        assert {u, v} == {0, 1}
+
+    def test_exact_diameter_collinear(self):
+        """On collinear points the diameter is the distance between the endpoints.
+
+        Validates: Requirements 19.4
+        """
+        metric = EuclideanDistance()
+        pts = np.arange(10, dtype=np.float64).reshape(-1, 1)
+        prepared = metric.prepare(pts)
+
+        d, u, v = exact_diameter(prepared, metric)
+
+        assert d == pytest.approx(9.0, rel=1e-9)
+        assert {u, v} == {0, 9}
+
+    def test_exact_diameter_identical_points(self):
+        """All identical points: diameter is 0.
+
+        Validates: Requirements 19.4
+        """
+        metric = EuclideanDistance()
+        pts = np.ones((5, 3), dtype=np.float64)
+        prepared = metric.prepare(pts)
+
+        d, u, v = exact_diameter(prepared, metric)
+
+        assert d == pytest.approx(0.0, abs=1e-12)
+
+    def test_exact_diameter_known_value(self):
+        """Verify exact_diameter on a hand-crafted example with known answer.
+
+        Points: unit square corners + center.
+        True diameter = sqrt(2) (diagonal of the unit square).
+        """
+        metric = EuclideanDistance()
+        pts = np.array([
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 1.0],
+            [0.5, 0.5],  # center — not the diameter pair
+        ])
+        prepared = metric.prepare(pts)
+
+        d, u, v = exact_diameter(prepared, metric)
+
+        assert d == pytest.approx(np.sqrt(2.0), rel=1e-9)
+        # The diameter pair must be one of the four diagonal pairs.
+        assert {u, v} in ({0, 3}, {1, 2}), (
+            f"Expected a diagonal pair, got {{{u}, {v}}}"
+        )
+
+    @paper_verification_settings
+    @given(pts=random_points(n_max=12, d_max=5))
+    def test_exact_diameter_non_negative(self, pts):
+        """exact_diameter() must always return a non-negative distance.
+
+        Validates: Requirements 19.1
+        """
+        metric = EuclideanDistance()
+        prepared = metric.prepare(pts.copy())
+
+        d, u, v = exact_diameter(prepared, metric)
+
+        assert d >= -1e-12, f"Negative diameter: {d}"
+        assert 0 <= u < len(pts)
+        assert 0 <= v < len(pts)
+
+    @paper_verification_settings
+    @given(pts=random_points(n_max=12, d_max=5))
+    def test_exact_diameter_indices_valid(self, pts):
+        """Returned indices u, v must be valid indices into the point array.
+
+        Validates: Requirements 19.2
+        """
+        metric = EuclideanDistance()
+        prepared = metric.prepare(pts.copy())
+        n = len(prepared)
+
+        d, u, v = exact_diameter(prepared, metric)
+
+        assert 0 <= u < n, f"u={u} out of range [0, {n})"
+        assert 0 <= v < n, f"v={v} out of range [0, {n})"
+
+    def test_exact_diameter_cosine(self):
+        """exact_diameter works correctly with CosineDistance.
+
+        Validates: Requirements 19.1 (metric-agnostic)
+        """
+        metric = CosineDistance()
+        # Opposite unit vectors have cosine distance = 2 (max possible).
+        pts = np.array([
+            [1.0, 0.0],
+            [-1.0, 0.0],
+            [0.0, 1.0],
+        ])
+        prepared = metric.prepare(pts.copy())
+
+        d, u, v = exact_diameter(prepared, metric)
+
+        # dist([1,0], [-1,0]) = 1 - cos(180°) = 1 - (-1) = 2.0
+        assert d == pytest.approx(2.0, rel=1e-9)
+        assert {u, v} == {0, 1}
+
+
+# ---------------------------------------------------------------------------
+# TestExactVsApproximateDiameter — comparative properties
+# ---------------------------------------------------------------------------
+
+
+class TestExactVsApproximateDiameter:
+    """Compare exact_diameter and approximate_diameter on the same inputs.
+
+    Property 27: Exact diameter is an upper bound on approximate diameter.
+    Property 28: On easy instances (collinear, 2-point) both agree exactly.
+    Property 29: Approximate diameter is a lower bound on exact diameter.
+
+    Validates: Requirements 20.1, 20.2, 20.3
+    """
+
+    @paper_verification_settings
+    @given(pts=random_points(n_max=12, d_max=5))
+    def test_exact_geq_approx_always(self, pts):
+        """exact_diameter >= approximate_diameter for all random inputs.
+
+        Validates: Requirements 20.1
+        """
+        metric = EuclideanDistance()
+        prepared = metric.prepare(pts.copy())
+
+        d_exact, _, _ = exact_diameter(prepared, metric)
+
+        for seed in range(5):
+            d_approx, _, _ = approximate_diameter(
+                prepared, metric, np.random.default_rng(seed), n_starts=5
+            )
+            assert d_exact >= d_approx - 1e-9, (
+                f"seed={seed}: exact={d_exact} < approx={d_approx}"
+            )
+
+    def test_both_agree_on_two_points(self):
+        """On a 2-point set, exact and approximate must return the same distance.
+
+        Validates: Requirements 20.2
+        """
+        metric = EuclideanDistance()
+        pts = np.array([[0.0, 0.0], [3.0, 4.0]])
+        prepared = metric.prepare(pts)
+
+        d_exact, _, _ = exact_diameter(prepared, metric)
+        d_approx, _, _ = approximate_diameter(
+            prepared, metric, np.random.default_rng(0), n_starts=5
+        )
+
+        assert d_exact == pytest.approx(d_approx, rel=1e-9)
+        assert d_exact == pytest.approx(5.0, rel=1e-9)
+
+    def test_both_agree_on_collinear(self):
+        """On collinear points, both methods find the exact diameter.
+
+        Validates: Requirements 20.2
+        """
+        metric = EuclideanDistance()
+        pts = np.arange(10, dtype=np.float64).reshape(-1, 1)
+        prepared = metric.prepare(pts)
+
+        d_exact, _, _ = exact_diameter(prepared, metric)
+        d_approx, _, _ = approximate_diameter(
+            prepared, metric, np.random.default_rng(42), n_starts=5
+        )
+
+        assert d_exact == pytest.approx(9.0, rel=1e-9)
+        assert d_approx == pytest.approx(9.0, rel=1e-9)
+
+    @paper_verification_settings
+    @given(pts=random_points(n_max=12, d_max=5))
+    def test_approx_is_lower_bound_on_exact(self, pts):
+        """approximate_diameter <= exact_diameter (approx is a lower bound).
+
+        Validates: Requirements 20.3
+        """
+        metric = EuclideanDistance()
+        prepared = metric.prepare(pts.copy())
+
+        d_exact, _, _ = exact_diameter(prepared, metric)
+        d_approx, _, _ = approximate_diameter(
+            prepared, metric, np.random.default_rng(7), n_starts=3
+        )
+
+        assert d_approx <= d_exact + 1e-9, (
+            f"approx={d_approx} > exact={d_exact}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# TestGISTExactDiameterFlag — gist(exact_diameter=True/False) behaviour
+# ---------------------------------------------------------------------------
+
+
+class TestGISTExactDiameterFlag:
+    """Verify the exact_diameter parameter of gist().
+
+    Property 30: exact_diameter=True uses exact diameter (>= approximate).
+    Property 31: exact_diameter=False (default) uses approximate diameter.
+    Property 32: precomputed diameter= takes precedence over exact_diameter.
+    Property 33: exact_diameter=True objective >= exact_diameter=False objective.
+    Property 34: Both modes satisfy the approximation ratio guarantee.
+
+    Validates: Requirements 21.1, 21.2, 21.3, 21.4, 21.5
+    """
+
+    # -- Property 30: exact mode uses exact diameter (Req 21.1) -----------
+
+    @paper_verification_settings
+    @given(pts=random_points(n_max=10, d_max=4))
+    def test_exact_mode_diversity_geq_approx_mode(self, pts):
+        """gist(exact_diameter=True).diversity >= gist(exact_diameter=False).diversity.
+
+        Because exact_diameter >= approximate_diameter, the threshold set
+        built from the exact diameter is at least as wide, so the best
+        solution found can only be as good or better.
+
+        Validates: Requirements 21.1, 21.3
+        """
+        n = len(pts)
+        weights = np.ones(n, dtype=np.float64)
+        utility = LinearUtility(weights)
+        metric = EuclideanDistance()
+        k = max(2, n // 2)
+
+        result_exact = gist(pts, utility, metric, k=k, lam=1.0, seed=42,
+                            exact_diameter=True)
+        result_approx = gist(pts, utility, metric, k=k, lam=1.0, seed=42,
+                             exact_diameter=False)
+
+        # The exact mode objective must be >= approximate mode objective
+        # because it has access to the true diameter.
+        assert result_exact.objective_value >= result_approx.objective_value - 1e-9, (
+            f"exact_diameter=True objective {result_exact.objective_value} < "
+            f"exact_diameter=False objective {result_approx.objective_value}"
+        )
+
+    # -- Property 31: default is approximate (Req 21.2) -------------------
+
+    def test_default_uses_approximate_diameter(self):
+        """gist() default (exact_diameter=False) matches explicit False.
+
+        Validates: Requirements 21.2
+        """
+        pts = np.array([
+            [0.0, 0.0], [1.0, 0.0], [2.0, 0.0],
+            [3.0, 0.0], [4.0, 0.0],
+        ])
+        weights = np.ones(5)
+        utility = LinearUtility(weights)
+        metric = EuclideanDistance()
+
+        result_default = gist(pts, utility, metric, k=3, lam=1.0, seed=42)
+        result_explicit = gist(pts, utility, metric, k=3, lam=1.0, seed=42,
+                               exact_diameter=False)
+
+        assert result_default.objective_value == pytest.approx(
+            result_explicit.objective_value, rel=1e-9
+        )
+        np.testing.assert_array_equal(result_default.indices, result_explicit.indices)
+
+    # -- Property 32: precomputed diameter takes precedence (Req 21.3) ----
+
+    def test_precomputed_diameter_overrides_exact_flag(self):
+        """When diameter= is provided, exact_diameter flag is ignored.
+
+        Validates: Requirements 21.3
+        """
+        pts = np.array([
+            [0.0, 0.0], [1.0, 0.0], [5.0, 0.0],
+        ])
+        weights = np.ones(3)
+        utility = LinearUtility(weights)
+        metric = EuclideanDistance()
+
+        # Precomputed diameter: force d_max=5, pair=(0,2).
+        precomputed = (5.0, 0, 2)
+
+        # Both calls use the same precomputed diameter regardless of flag.
+        result_with_flag = gist(pts, utility, metric, k=2, lam=1.0, seed=42,
+                                diameter=precomputed, exact_diameter=True)
+        result_without_flag = gist(pts, utility, metric, k=2, lam=1.0, seed=42,
+                                   diameter=precomputed, exact_diameter=False)
+
+        assert result_with_flag.objective_value == pytest.approx(
+            result_without_flag.objective_value, rel=1e-9
+        )
+        np.testing.assert_array_equal(result_with_flag.indices,
+                                      result_without_flag.indices)
+
+    # -- Property 33: exact mode satisfies approximation ratio (Req 21.4) --
+
+    @paper_verification_settings
+    @given(pts=random_points(n_max=10, d_max=4))
+    def test_exact_mode_dominates_approx_mode_with_same_diameter(self, pts):
+        """When both modes use the same diameter, they produce the same result.
+
+        The only difference between exact_diameter=True and False is which
+        diameter value is used.  If we force both to use the exact diameter,
+        the results must be identical.
+
+        Validates: Requirements 21.4
+        """
+        n = len(pts)
+        weights = np.ones(n, dtype=np.float64)
+        utility = LinearUtility(weights)
+        metric = EuclideanDistance()
+        k = max(1, n // 2)
+
+        # Compute the exact diameter once.
+        prepared = metric.prepare(pts.copy())
+        d_exact, u, v = exact_diameter(prepared, metric)
+        diam = (d_exact, u, v)
+
+        # Both calls use the same precomputed diameter — results must match.
+        result_a = gist(pts, utility, metric, k=k, lam=1.0, seed=42,
+                        diameter=diam, exact_diameter=True)
+        result_b = gist(pts, utility, metric, k=k, lam=1.0, seed=42,
+                        diameter=diam, exact_diameter=False)
+
+        assert result_a.objective_value == pytest.approx(
+            result_b.objective_value, rel=1e-9, abs=1e-12
+        ), (
+            f"Same diameter but different objectives: "
+            f"exact={result_a.objective_value}, approx={result_b.objective_value}"
+        )
+        np.testing.assert_array_equal(result_a.indices, result_b.indices)
+
+    # -- Property 34: exact mode satisfies approximation ratio (Req 21.5) -
+
+    @given(data=st.data())
+    @settings(
+        max_examples=100,
+        deadline=None,
+        suppress_health_check=[HealthCheck.too_slow],
+    )
+    def test_exact_mode_approximation_ratio(self, data):
+        """gist(exact_diameter=True) satisfies (2/3 - eps) ratio for LinearUtility.
+
+        Validates: Requirements 21.5
+        """
+        eps = 0.1
+        pts = data.draw(random_points(n_max=7, d_max=3), label="points")
+        n = len(pts)
+        k = data.draw(st.integers(min_value=2, max_value=min(4, n)), label="k")
+        lam = data.draw(
+            st.floats(min_value=0.1, max_value=5.0, allow_nan=False, allow_infinity=False),
+            label="lam",
+        )
+        weights = data.draw(random_weights(n), label="weights")
+        utility = LinearUtility(weights)
+        metric = EuclideanDistance()
+
+        prepared = metric.prepare(pts)
+        result = gist(pts, utility, metric, k=k, lam=lam, eps=eps, seed=42,
+                      exact_diameter=True)
+
+        _, opt_f = brute_force_optimal(prepared, utility, metric, k, lam)
+
+        ratio_bound = 2.0 / 3.0 - eps
+        if opt_f > 0:
+            assert result.objective_value >= ratio_bound * opt_f - 1e-9, (
+                f"exact_diameter=True ratio violated: "
+                f"f(S)={result.objective_value:.6f}, f(opt)={opt_f:.6f}, "
+                f"ratio={result.objective_value / opt_f:.6f}, bound={ratio_bound:.6f}"
+            )
+
+    # -- Unit: exact mode on known instance --------------------------------
+
+    def test_exact_mode_known_instance(self):
+        """Verify exact_diameter=True on a hand-crafted instance.
+
+        Points: [0,0], [1,0], [10,0]  — true diameter = 10 (pair 0,2).
+        Approximate diameter (double-scan from any start) also finds 10
+        on this collinear instance, so both modes agree.
+
+        Validates: Requirements 21.1, 21.2
+        """
+        pts = np.array([[0.0, 0.0], [1.0, 0.0], [10.0, 0.0]])
+        weights = np.array([1.0, 5.0, 5.0])
+        utility = LinearUtility(weights)
+        metric = EuclideanDistance()
+
+        result_exact = gist(pts, utility, metric, k=2, lam=1.0, seed=42,
+                            exact_diameter=True)
+        result_approx = gist(pts, utility, metric, k=2, lam=1.0, seed=42,
+                             exact_diameter=False)
+
+        # On collinear points the double-scan finds the exact diameter,
+        # so both modes must agree.
+        assert result_exact.objective_value == pytest.approx(
+            result_approx.objective_value, rel=1e-9
+        )
+
+    def test_exact_mode_empty_and_degenerate(self):
+        """exact_diameter=True handles edge cases: empty input, k=0, k=1.
+
+        Validates: Requirements 21.1
+        """
+        metric = EuclideanDistance()
+        utility_empty = LinearUtility(np.empty(0, dtype=np.float64))
+
+        # Empty input.
+        result = gist(np.empty((0, 2)), utility_empty, metric, k=5,
+                      exact_diameter=True)
+        assert len(result.indices) == 0
+        assert result.objective_value == 0.0
+
+        # k=0.
+        pts = np.array([[0.0, 0.0], [1.0, 0.0]])
+        utility = LinearUtility(np.ones(2))
+        result = gist(pts, utility, metric, k=0, exact_diameter=True)
+        assert len(result.indices) == 0
+
+        # k=1: single point selected.
+        result = gist(pts, utility, metric, k=1, lam=1.0, exact_diameter=True)
+        assert len(result.indices) == 1
+
+    @paper_verification_settings
+    @given(pts=random_points(n_max=10, d_max=4))
+    def test_exact_mode_result_is_valid(self, pts):
+        """gist(exact_diameter=True) always returns a valid GISTResult.
+
+        Validates: Requirements 21.1
+        - indices are unique and within bounds
+        - objective_value == utility_value + lam * diversity
+        - diversity >= 0
+        """
+        n = len(pts)
+        weights = np.ones(n, dtype=np.float64)
+        utility = LinearUtility(weights)
+        metric = EuclideanDistance()
+        k = max(1, n // 2)
+        lam = 1.0
+
+        result = gist(pts, utility, metric, k=k, lam=lam, seed=42,
+                      exact_diameter=True)
+
+        # Valid indices.
+        assert len(result.indices) <= k
+        assert len(set(result.indices.tolist())) == len(result.indices)
+        assert all(0 <= i < n for i in result.indices)
+
+        # Objective decomposition.
+        assert result.objective_value == pytest.approx(
+            result.utility_value + lam * result.diversity, rel=1e-9, abs=1e-12
+        )
+
+        # Non-negative diversity.
+        assert result.diversity >= -1e-12
