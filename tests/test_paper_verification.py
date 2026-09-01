@@ -1,9 +1,4 @@
-"""GIST Paper Verification Test Suite.
-
-Comprehensive correctness verification of the gist-select implementation
-against the research paper "GIST: Greedy Independent Set Thresholding for
-Max-Min Diversification with Submodular Utility" (arXiv:2405.18754).
-"""
+"""Property-based verification against the GIST paper (arXiv:2405.18754)."""
 
 from __future__ import annotations
 
@@ -271,23 +266,17 @@ def random_coverage_matrix(draw, n, m_max=20):
 
 
 # ---------------------------------------------------------------------------
-# Property 12: Euclidean Metric Axioms
+# Euclidean Metric Axioms
 # ---------------------------------------------------------------------------
 
 
 class TestMetricProperties:
-    """Feature: gist-paper-verification, Property 12: Euclidean Metric Axioms
-
-    Validates: Requirements 12.1, 12.2, 12.3, 12.4
-    """
+    """Euclidean distance metric axioms."""
 
     @paper_verification_settings
     @given(pts=random_points(n_max=10, d_max=5))
     def test_euclidean_non_negativity(self, pts):
-        """**Validates: Requirements 12.1**
-
-        dist(u, v) >= 0 for all pairs.
-        """
+        """dist(u, v) >= 0 for all pairs."""
         metric = EuclideanDistance()
         points = metric.prepare(pts.copy())
         n = len(points)
@@ -301,10 +290,7 @@ class TestMetricProperties:
     @paper_verification_settings
     @given(pts=random_points(n_max=10, d_max=5))
     def test_euclidean_identity_of_indiscernibles(self, pts):
-        """**Validates: Requirements 12.2**
-
-        dist(u, u) = 0 for all points u.
-        """
+        """dist(u, u) = 0 for all points u."""
         metric = EuclideanDistance()
         points = metric.prepare(pts.copy())
         n = len(points)
@@ -321,10 +307,7 @@ class TestMetricProperties:
     @paper_verification_settings
     @given(pts=random_points(n_max=10, d_max=5))
     def test_euclidean_symmetry(self, pts):
-        """**Validates: Requirements 12.3**
-
-        dist(u, v) = dist(v, u) for all pairs.
-        """
+        """dist(u, v) = dist(v, u) for all pairs."""
         metric = EuclideanDistance()
         points = metric.prepare(pts.copy())
         n = len(points)
@@ -341,10 +324,7 @@ class TestMetricProperties:
     @paper_verification_settings
     @given(pts=random_points(n_max=10, d_max=5))
     def test_euclidean_triangle_inequality(self, pts):
-        """**Validates: Requirements 12.4**
-
-        dist(u, w) <= dist(u, v) + dist(v, w) for all triples.
-        """
+        """dist(u, w) <= dist(u, v) + dist(v, w) for all triples."""
         metric = EuclideanDistance()
         points = metric.prepare(pts.copy())
         n = len(points)
@@ -373,24 +353,17 @@ class TestMetricProperties:
 
 
 # ---------------------------------------------------------------------------
-# Property 13: Cosine Distance Axioms
+# Cosine Distance Axioms
 # ---------------------------------------------------------------------------
 
 
 class TestCosineDistanceAxioms:
-    """Feature: gist-paper-verification, Property 13: Cosine Distance Axioms
-
-    Validates: Requirements 12.5, 12.6
-    """
+    """Cosine distance axioms."""
 
     @paper_verification_settings
     @given(pts=random_points(n_max=10, d_max=5))
     def test_cosine_non_negativity(self, pts):
-        """**Validates: Requirements 12.5**
-
-        dist(u, v) >= 0 for all non-zero vector pairs.
-        CosineDistance computes 1 - cos(a, b) which is in [0, 2] for unit vectors.
-        """
+        """dist(u, v) >= 0 for all non-zero vector pairs. CosineDistance computes 1 - cos(a, b) which is in [0, 2] for unit vectors."""
         from hypothesis import assume
 
         # Filter out rows with zero (or near-zero) norm
@@ -411,10 +384,7 @@ class TestCosineDistanceAxioms:
     @paper_verification_settings
     @given(pts=random_points(n_max=10, d_max=5))
     def test_cosine_symmetry(self, pts):
-        """**Validates: Requirements 12.6**
-
-        dist(u, v) = dist(v, u) for all non-zero vector pairs.
-        """
+        """dist(u, v) = dist(v, u) for all non-zero vector pairs."""
         from hypothesis import assume
 
         # Filter out rows with zero (or near-zero) norm
@@ -437,23 +407,17 @@ class TestCosineDistanceAxioms:
 
 
 # ---------------------------------------------------------------------------
-# Property 14: CoverageFunction Submodularity
+# CoverageFunction Submodularity
 # ---------------------------------------------------------------------------
 
 
 class TestSubmodularProperties:
-    """Feature: gist-paper-verification, Property 14: CoverageFunction Submodularity
-
-    Validates: Requirements 13.1, 13.2
-    """
+    """CoverageFunction submodularity."""
 
     @paper_verification_settings
     @given(data=st.data())
     def test_coverage_diminishing_returns(self, data):
-        """**Validates: Requirements 13.1**
-
-        For S ⊆ T and v ∉ T: g(v|S) >= g(v|T) (diminishing returns).
-        """
+        """For S ⊆ T and v ∉ T: g(v|S) >= g(v|T) (diminishing returns)."""
         from hypothesis import assume
 
         n = data.draw(st.integers(min_value=3, max_value=10))
@@ -497,10 +461,7 @@ class TestSubmodularProperties:
     @paper_verification_settings
     @given(data=st.data())
     def test_coverage_monotonicity(self, data):
-        """**Validates: Requirements 13.2**
-
-        For S ⊆ T: g(S) <= g(T) (monotonicity).
-        """
+        """For S ⊆ T: g(S) <= g(T) (monotonicity)."""
         n = data.draw(st.integers(min_value=2, max_value=10))
         cov = data.draw(random_coverage_matrix(n))
         cf = CoverageFunction(cov)
@@ -534,19 +495,12 @@ class TestSubmodularProperties:
         )
 
 class TestLinearUtilityModularity:
-    """Feature: gist-paper-verification, Property 15: LinearUtility Modularity
-
-    Validates: Requirements 13.3, 13.4
-    """
+    """LinearUtility modularity."""
 
     @paper_verification_settings
     @given(data=st.data())
     def test_linear_context_independent_marginal_gains(self, data):
-        """**Validates: Requirements 13.3**
-
-        For S ⊆ T and v ∉ T: g(v|S) = g(v|T) (marginal gains independent
-        of context, since linear is modular).
-        """
+        """For S ⊆ T and v ∉ T: g(v|S) = g(v|T) (marginal gains independent of context, since linear is modular)."""
         from hypothesis import assume
 
         n = data.draw(st.integers(min_value=3, max_value=12))
@@ -592,10 +546,7 @@ class TestLinearUtilityModularity:
     @paper_verification_settings
     @given(data=st.data())
     def test_linear_monotonicity(self, data):
-        """**Validates: Requirements 13.4**
-
-        For S ⊆ T with non-negative weights: g(S) <= g(T) (monotonicity).
-        """
+        """For S ⊆ T with non-negative weights: g(S) <= g(T) (monotonicity)."""
         n = data.draw(st.integers(min_value=2, max_value=12))
         weights = data.draw(random_weights(n))
         lu = LinearUtility(weights)
@@ -630,29 +581,17 @@ class TestLinearUtilityModularity:
 
 
 # ---------------------------------------------------------------------------
-# Property 1, 2, 3: GreedyIndependentSet Correctness
+# GreedyIndependentSet Correctness
 # ---------------------------------------------------------------------------
 
 
 class TestGreedyIndependentSetCorrectness:
-    """Feature: gist-paper-verification, Properties 1-3
-
-    Property 1: d-Independence Invariant
-    Property 2: Maximality When |S| < k
-    Property 3: d=0 Reduces to Standard Greedy
-
-    Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 1.6
-    """
-
-    # -- Property 1: d-Independence Invariant (Req 1.1) --------------------
+    """GreedyIndependentSet d-independence, maximality, and d=0 behaviour."""
 
     @paper_verification_settings
     @given(data=st.data())
     def test_d_independence_invariant(self, data):
-        """**Validates: Requirements 1.1**
-
-        All pairwise distances in the returned set must be >= d.
-        """
+        """All pairwise distances in the returned set must be >= d."""
         pts = data.draw(random_points(n_max=8, d_max=3))
         n = len(pts)
         weights = data.draw(random_weights(n))
@@ -666,7 +605,6 @@ class TestGreedyIndependentSetCorrectness:
 
         selected, min_pw = _greedy_independent_set(points, utility, metric, d, k)
 
-        # Check all pairwise distances >= d
         for i in range(len(selected)):
             for j in range(i + 1, len(selected)):
                 targets = np.array([selected[j]], dtype=np.intp)
@@ -678,17 +616,10 @@ class TestGreedyIndependentSetCorrectness:
                     f"= {dist_val} < d = {d}"
                 )
 
-    # -- Property 2: Maximality When |S| < k (Req 1.2, 1.6) ---------------
-
     @paper_verification_settings
     @given(data=st.data())
     def test_maximality_when_fewer_than_k(self, data):
-        """**Validates: Requirements 1.2, 1.6**
-
-        If |S| < k, no point v in V\\S has dist(v, S) >= d (maximal set).
-        When the candidate set becomes empty before k elements, the returned
-        set is maximal.
-        """
+        """If |S| < k, no point v in V\\S has dist(v, S) >= d (maximal set). When the candidate set becomes empty before k elements, the returned set is maximal."""
         pts = data.draw(random_points(n_max=8, d_max=3))
         n = len(pts)
         weights = data.draw(random_weights(n))
@@ -703,8 +634,6 @@ class TestGreedyIndependentSetCorrectness:
         selected, _ = _greedy_independent_set(points, utility, metric, d, k)
 
         if len(selected) < k:
-            # Maximality: every point not in S must be within distance d
-            # of some point in S.
             selected_set = set(selected)
             sel_arr = np.array(selected, dtype=np.intp)
             for v in range(n):
@@ -717,20 +646,13 @@ class TestGreedyIndependentSetCorrectness:
                     f"min dist to S = {min_dist} >= d = {d}"
                 )
 
-    # -- Property 3: d=0 Reduces to Standard Greedy (Req 1.3) -------------
-
     @paper_verification_settings
     @given(data=st.data())
     def test_d_zero_is_standard_greedy(self, data):
-        """**Validates: Requirements 1.3**
-
-        With d=0, GreedyIndependentSet reduces to standard greedy: top-k
-        by weight for LinearUtility with distinct weights.
-        """
+        """With d=0, GreedyIndependentSet reduces to standard greedy: top-k by weight for LinearUtility with distinct weights."""
         pts = data.draw(random_points(n_max=8, d_max=3))
         n = len(pts)
 
-        # Generate distinct weights by using arange + small perturbation
         base_weights = np.arange(n, dtype=np.float64) + 1.0
         perturbation = data.draw(
             st.lists(
@@ -740,7 +662,6 @@ class TestGreedyIndependentSetCorrectness:
             )
         )
         weights = base_weights + np.array(perturbation)
-        # Ensure all weights are distinct
         weights = weights + np.arange(n) * 0.001
 
         utility = LinearUtility(weights)
@@ -759,14 +680,8 @@ class TestGreedyIndependentSetCorrectness:
             f"Weights: {weights}"
         )
 
-    # -- Unit test: Deterministic tie-breaking (Req 1.4) -------------------
-
     def test_deterministic_tie_breaking(self):
-        """**Validates: Requirements 1.4**
-
-        Equal-weight inputs produce a stable, deterministic order across
-        multiple runs.
-        """
+        """Equal-weight inputs produce a stable, deterministic order across multiple runs."""
         pts = np.array([
             [0.0, 0.0],
             [1.0, 0.0],
@@ -786,14 +701,8 @@ class TestGreedyIndependentSetCorrectness:
             f"Non-deterministic tie-breaking: run1={sel1}, run2={sel2}"
         )
 
-    # -- Unit test: Candidate set empty → early return (Req 1.5, 1.6) -----
-
     def test_candidate_set_empty_early_return(self):
-        """**Validates: Requirements 1.5, 1.6**
-
-        When the candidate set becomes empty before k elements are selected,
-        the algorithm returns the current set immediately.
-        """
+        """When the candidate set becomes empty before k elements are selected, the algorithm returns the current set immediately."""
         # Place points far apart but use a very large d so that after
         # selecting the first point, all others are eliminated.
         pts = np.array([
@@ -820,36 +729,17 @@ class TestGreedyIndependentSetCorrectness:
 
 
 # ---------------------------------------------------------------------------
-# Property 4: CELF Equivalence
+# CELF Equivalence
 # ---------------------------------------------------------------------------
 
 
 class TestCELFEquivalence:
-    """Feature: gist-paper-verification, Property 4: CELF Equivalence
-
-    Verify that the CELF (lazy greedy) optimisation in _greedy_independent_set
-    produces identical results to a brute-force greedy that recomputes all
-    marginal gains at each iteration.
-
-    **Validates: Requirements 2.1, 2.2**
-    """
+    """CELF produces the same selections as naive greedy."""
 
     @paper_verification_settings
     @given(data=st.data())
     def test_celf_matches_brute_force_greedy_linear(self, data):
-        """**Validates: Requirements 2.1, 2.2**
-
-        For LinearUtility, _greedy_independent_set (CELF) must return the
-        same selected set as brute_force_greedy_independent_set.
-
-        When marginal gains are tied, the CELF heap may break ties
-        differently from the index-order brute-force.  We verify:
-        1. Same number of elements selected.
-        2. Same set of elements (for LinearUtility, ties in marginal gains
-           mean equal weights, so any tie-broken choice yields the same
-           utility value — we check set equality when possible, and fall
-           back to utility-value equality).
-        """
+        """For LinearUtility, _greedy_independent_set (CELF) must return the same selected set as brute_force_greedy_independent_set. When marginal gains are tied, the CELF heap may break ties differently from the index-order brute-force.  We verify: 1. Same number of elements selected. 2. Same set of elements (for LinearUtility, ties in marginal gains mean equal weights, so any tie-broken choice yields the same utility value — we check set equality when possible, and fall back to utility-value equality)."""
         pts = data.draw(random_points(n_max=8, d_max=3))
         n = len(pts)
         weights = data.draw(random_weights(n))
@@ -885,17 +775,7 @@ class TestCELFEquivalence:
     @paper_verification_settings
     @given(data=st.data())
     def test_celf_matches_brute_force_greedy_coverage(self, data):
-        """**Validates: Requirements 2.1, 2.2**
-
-        For CoverageFunction, _greedy_independent_set (CELF) must return a
-        result equivalent to brute_force_greedy_independent_set.
-
-        When marginal gains are tied, the CELF heap may break ties
-        differently from the index-order brute-force, producing a different
-        set.  We verify:
-        1. Same number of elements selected.
-        2. Same utility value g(S) — both are valid greedy selections.
-        """
+        """For CoverageFunction, _greedy_independent_set (CELF) must return a result equivalent to brute_force_greedy_independent_set. When marginal gains are tied, the CELF heap may break ties differently from the index-order brute-force, producing a different set.  We verify: 1. Same number of elements selected. 2. Same utility value g(S) — both are valid greedy selections."""
         pts = data.draw(random_points(n_max=8, d_max=3))
         n = len(pts)
         cov_matrix = data.draw(random_coverage_matrix(n))
@@ -930,19 +810,12 @@ class TestCELFEquivalence:
 
 
 # ---------------------------------------------------------------------------
-# Property 5: Threshold Set Construction
+# Threshold Set Construction
 # ---------------------------------------------------------------------------
 
 
 class TestThresholdSetConstruction:
-    """Feature: gist-paper-verification, Property 5: Threshold Set Construction
-
-    Verify that _build_thresholds(d_max, eps) produces the threshold set
-    D = {(1+eps)^i * eps*d_max/2 : (1+eps)^i <= 2/eps, i >= 0} exactly as
-    specified in Algorithm 1 of the paper.
-
-    **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
-    """
+    """Geometric threshold set construction."""
 
     @paper_verification_settings
     @given(
@@ -952,14 +825,7 @@ class TestThresholdSetConstruction:
                         allow_nan=False, allow_infinity=False),
     )
     def test_threshold_set_construction(self, eps, d_max):
-        """**Validates: Requirements 3.1, 3.3, 3.4, 3.5**
-
-        For random eps > 0 and d_max > 0, verify:
-        (a) thresholds match {(1+eps)^i * eps*d_max/2 : (1+eps)^i <= 2/eps}
-        (b) strictly increasing order
-        (c) smallest element = eps*d_max/2
-        (d) largest element <= d_max
-        """
+        """For random eps > 0 and d_max > 0, verify: (a) thresholds match {(1+eps)^i * eps*d_max/2 : (1+eps)^i <= 2/eps} (b) strictly increasing order (c) smallest element = eps*d_max/2 (d) largest element <= d_max"""
         thresholds = _build_thresholds(d_max, eps)
 
         # Compute expected thresholds from the formula.
@@ -1001,13 +867,7 @@ class TestThresholdSetConstruction:
         )
 
     def test_threshold_count_eps005(self):
-        """**Validates: Requirements 3.2**
-
-        For eps=0.05, d_max=1.0, verify the exact count of thresholds.
-        Count of i >= 0 satisfying (1+0.05)^i <= 2/0.05 = 40:
-        i_max = floor(log(40) / log(1.05)) = floor(75.6) = 75
-        So 76 thresholds (i = 0, 1, ..., 75).
-        """
+        """For eps=0.05, d_max=1.0, verify the exact count of thresholds. Count of i >= 0 satisfying (1+0.05)^i <= 2/0.05 = 40: i_max = floor(log(40) / log(1.05)) = floor(75.6) = 75 So 76 thresholds (i = 0, 1, ..., 75)."""
         import math
 
         eps = 0.05
@@ -1030,25 +890,12 @@ class TestThresholdSetConstruction:
 
 
 class TestDiversityConvention:
-    """Feature: gist-paper-verification, Property 7: Diversity Convention
-
-    For any set of points and any selected subset S:
-    - if |S| >= 2, the reported diversity equals the minimum pairwise distance
-    - if |S| = 1, the reported diversity equals d_max (the diameter)
-    - if |S| = 0, the objective value is 0.0
-
-    **Validates: Requirements 5.1, 5.2, 5.3**
-    """
+    """Paper diversity convention div(S) for |S| <= 1."""
 
     @paper_verification_settings
     @given(data=st.data())
     def test_diversity_convention(self, data):
-        """**Validates: Requirements 5.1, 5.2**
-
-        For random points and random k/lambda/eps, run gist() and verify:
-        - If |S| >= 2: diversity == min pairwise distance (computed independently)
-        - If |S| = 1: diversity == d_max (diameter of the full point set)
-        """
+        """For random points and random k/lambda/eps, run gist() and verify: - If |S| >= 2: diversity == min pairwise distance (computed independently) - If |S| = 1: diversity == d_max (diameter of the full point set)"""
         n = data.draw(st.integers(min_value=2, max_value=10), label="n")
         dim = data.draw(st.integers(min_value=1, max_value=4), label="dim")
         pts = data.draw(
@@ -1086,14 +933,14 @@ class TestDiversityConvention:
         prepared = metric.prepare(points)
 
         if len(result.indices) >= 2:
-            # Requirement 5.1: diversity = min pairwise distance
+            # diversity = min pairwise distance
             expected_div = compute_diversity(prepared, metric, list(result.indices))
             assert result.diversity == pytest.approx(expected_div, rel=1e-9, abs=1e-12), (
                 f"|S|={len(result.indices)}: diversity {result.diversity} != "
                 f"expected min pairwise dist {expected_div}"
             )
         elif len(result.indices) == 1:
-            # Requirement 5.2: diversity = d_max (diameter)
+            # diversity = d_max (diameter)
             # The algorithm uses approximate_diameter with the same seed,
             # so we must replicate that rather than using the true diameter.
             rng = np.random.default_rng(42)  # same seed as gist() call above
@@ -1103,11 +950,7 @@ class TestDiversityConvention:
             )
 
     def test_empty_set_objective_zero(self):
-        """**Validates: Requirements 5.3**
-
-        f(empty set) = 0.0 — when gist returns an empty selection, the
-        objective value must be zero.
-        """
+        """f(empty set) = 0.0 — when gist returns an empty selection, the objective value must be zero."""
         # Use k=0 or empty points to trigger empty result.
         # gist() returns empty when k < 1 or n == 0.
         points = np.array([[0.0, 0.0], [1.0, 1.0]], dtype=np.float64)
@@ -1135,30 +978,12 @@ class TestDiversityConvention:
 
 
 class TestGISTAlgorithmFlow:
-    """Feature: gist-paper-verification, Property 6: GIST Dominance
-
-    For any valid input, the GIST result shall have objective value
-    f(S) >= f(S_greedy) where S_greedy is the d=0 greedy solution, and
-    f(S) >= f(T_pair) where T_pair is the diametrical pair (when k >= 2).
-    GIST returns the best across all candidate solutions.
-
-    Tests Algorithm 1 flow: greedy first (step 1), diametrical pair check
-    with strict > (step 4), threshold sweep with non-strict >= (step 6).
-
-    **Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.5**
-    """
+    """GIST dominance and strict/non-strict update rules."""
 
     @paper_verification_settings
     @given(data=st.data())
     def test_gist_dominates_greedy_and_pair(self, data):
-        """**Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.5**
-
-        For random small instances, verify:
-        - f(S_gist) >= f(S_greedy) where S_greedy is the d=0 greedy solution
-        - f(S_gist) >= f(T_pair) where T_pair is the diametrical pair (when k >= 2)
-
-        Run gist() and independently compute the greedy and pair objectives.
-        """
+        """For random small instances, verify: - f(S_gist) >= f(S_greedy) where S_greedy is the d=0 greedy solution - f(S_gist) >= f(T_pair) where T_pair is the diametrical pair (when k >= 2) Run gist() and independently compute the greedy and pair objectives."""
         # Generate random small instance.
         points = data.draw(random_points(n_max=8, d_max=3), label="points")
         n = len(points)
@@ -1179,7 +1004,6 @@ class TestGISTAlgorithmFlow:
         utility = LinearUtility(weights)
         seed = 42
 
-        # Run GIST.
         gist_result = gist(points, utility, metric, k=k, lam=lam, eps=eps, seed=seed)
 
         # Prepare points the same way gist does internally.
@@ -1192,7 +1016,6 @@ class TestGISTAlgorithmFlow:
             prepared, metric, np.random.default_rng(seed)
         )
 
-        # --- Independently compute greedy solution (Step 1: d=0) ---
         greedy_sel, greedy_min_pw = _greedy_independent_set(
             prepared, utility, metric, 0.0, k
         )
@@ -1200,49 +1023,24 @@ class TestGISTAlgorithmFlow:
             prepared, utility, metric, greedy_sel, lam, d_max_approx
         )
 
-        # Requirement 4.1: GIST starts with greedy, so must dominate it.
         assert gist_result.objective_value >= f_greedy - 1e-9, (
             f"GIST objective {gist_result.objective_value} < greedy objective "
             f"{f_greedy} (greedy_sel={greedy_sel})"
         )
 
-        # --- Independently compute diametrical pair (Steps 2-4) ---
         if k >= 2 and d_max_approx > 0:
             pair_indices = [u_pair, v_pair]
             f_pair = compute_objective(
                 prepared, utility, metric, pair_indices, lam, d_max_approx
             )
 
-            # Requirement 4.4: GIST evaluates pair before sweep.
-            # Requirement 4.5: GIST returns the best across all candidates.
-            # The GIST result must dominate the pair objective.
             assert gist_result.objective_value >= f_pair - 1e-9, (
                 f"GIST objective {gist_result.objective_value} < pair objective "
                 f"{f_pair} (pair={pair_indices}, d_max_approx={d_max_approx})"
             )
 
     def test_diametrical_pair_strict_inequality(self):
-        """**Validates: Requirements 4.2**
-
-        Construct an input where f(T_pair) == f(S_greedy).  Since the pair
-        check uses strict > (Step 4 of Algorithm 1), the greedy solution
-        should NOT be replaced by the pair.  Verify the result is the
-        greedy solution.
-
-        Construction
-        ------------
-        Points: [0,0], [1,0], [10,0]   Weights: [1, 5, 5]   k=2, lam=4
-
-        * Greedy (d=0) picks {1, 2} (both weight 5, tie-broken by index).
-          g=10, div=dist(1,2)=9, f = 10 + 4*9 = 46.
-        * Diameter pair forced to {0, 2} via the ``diameter`` parameter.
-          g=6, div=d_max=10, f = 6 + 4*10 = 46.
-        * f(pair) == f(greedy) == 46.  Strict ``>`` means pair does NOT
-          replace greedy.
-        * The threshold sweep always picks point 1 first (weight 5 > 1),
-          so it reproduces the greedy set {1, 2} — never {0, 2}.
-        * Therefore the final result must be the greedy set {1, 2}.
-        """
+        """Equal pair and greedy objectives: strict > keeps the greedy solution."""
         points = np.array([[0.0, 0.0], [1.0, 0.0], [10.0, 0.0]])
         weights = np.array([1.0, 5.0, 5.0])
         k = 2
@@ -1284,29 +1082,7 @@ class TestGISTAlgorithmFlow:
         assert result.objective_value == pytest.approx(46.0, abs=1e-9)
 
     def test_threshold_sweep_non_strict_inequality(self):
-        """**Validates: Requirements 4.3**
-
-        Construct an input where a threshold sweep candidate has
-        f(T) == f(S_current).  Since the sweep uses non-strict >= (Step 6
-        of Algorithm 1), the sweep candidate SHOULD replace the current
-        solution.
-
-        Construction
-        ------------
-        Points: [0,0], [0,0], [1,0]   Weights: [5, 5, 1]   k=2, lam=4
-
-        * Greedy (d=0) picks {0, 1} (both weight 5).
-          g=10, div=dist(0,1)=0 (identical points), f = 10 + 4*0 = 10.
-        * Diameter pair forced to {0, 2} via ``diameter``.
-          g=6, div=d_max=1, f = 6 + 4*1 = 10.
-        * f(pair) == f(greedy) == 10.  Strict ``>`` means pair does NOT
-          replace greedy.
-        * Sweep: for any d > 0, points 0 and 1 cannot coexist (dist=0 < d).
-          Sweep picks {0, 2}: g=6, div=1, f=10.  Since 10 >= 10, the
-          sweep candidate replaces the current solution.
-        * Result has diversity = 1 > 0, confirming the sweep candidate
-          (with positive diversity) replaced the greedy solution (div=0).
-        """
+        """Equal sweep and current objectives: non-strict >= replaces the solution."""
         points = np.array([[0.0, 0.0], [0.0, 0.0], [1.0, 0.0]])
         weights = np.array([5.0, 5.0, 1.0])
         k = 2
@@ -1343,18 +1119,12 @@ class TestGISTAlgorithmFlow:
         )
 
 # ---------------------------------------------------------------------------
-# Property 8: Submodular (1/2 - ε) Approximation Ratio
+# Submodular (1/2 - ε) Approximation Ratio
 # ---------------------------------------------------------------------------
 
 
 class TestSubmodularApproximation:
-    """**Validates: Requirements 6.1, 6.2**
-
-    Verify that GIST achieves the (1/2 - eps) approximation ratio from
-    Theorem 3.1 for monotone submodular utility (CoverageFunction).
-    """
-
-    # Feature: gist-paper-verification, Property 8: Submodular (1/2 - ε) Approximation Ratio
+    """Submodular (1/2 - eps) approximation ratio."""
 
     @given(data=st.data())
     @settings(
@@ -1363,38 +1133,27 @@ class TestSubmodularApproximation:
         suppress_health_check=[HealthCheck.too_slow],
     )
     def test_submodular_approximation_ratio(self, data):
-        """**Validates: Requirements 6.1**
-
-        For small instances (n <= 8, k <= 4), generate a random coverage
-        matrix and points, run gist() with CoverageFunction, compute the
-        brute-force optimal, and verify f(S_gist) >= (1/2 - eps) * f(S_opt).
-        """
+        """For small instances (n <= 8, k <= 4), generate a random coverage matrix and points, run gist() with CoverageFunction, compute the brute-force optimal, and verify f(S_gist) >= (1/2 - eps) * f(S_opt)."""
         eps = 0.1
         lam = data.draw(
             st.floats(min_value=0.1, max_value=10.0, allow_nan=False, allow_infinity=False),
             label="lam",
         )
 
-        # Generate small point set.
         pts = data.draw(random_points(n_max=8, d_max=3), label="points")
         n = len(pts)
         k = data.draw(st.integers(min_value=2, max_value=min(4, n)), label="k")
 
-        # Generate coverage matrix for these n points.
         cov_mat = data.draw(random_coverage_matrix(n, m_max=15), label="coverage_matrix")
         utility = CoverageFunction(cov_mat)
         metric = EuclideanDistance()
 
-        # Prepare points (as the algorithm does internally).
         prepared = metric.prepare(pts)
 
-        # Run GIST.
         result = gist(pts, utility, metric, k=k, lam=lam, eps=eps, seed=42)
 
-        # Brute-force optimal.
         _, opt_f = brute_force_optimal(prepared, utility, metric, k, lam)
 
-        # The approximation guarantee: f(S_gist) >= (1/2 - eps) * f(S_opt).
         ratio_bound = (0.5 - eps)
         if opt_f > 0:
             assert result.objective_value >= ratio_bound * opt_f - 1e-9, (
@@ -1407,21 +1166,15 @@ class TestSubmodularApproximation:
             )
 
     def test_submodular_ratio_statistical(self):
-        """**Validates: Requirements 6.2**
-
-        For medium instances (n=50, k=10), run gist() multiple times with
-        different seeds and verify the empirical approximation ratio > 0.45.
-        """
+        """For medium instances (n=50, k=10), run gist() multiple times with different seeds and verify the empirical approximation ratio > 0.45."""
         rng = np.random.default_rng(12345)
         n, k, lam, eps = 50, 10, 1.0, 0.1
         n_trials = 10
         min_ratio = float("inf")
 
         for trial in range(n_trials):
-            # Generate random points.
             pts = rng.uniform(-10.0, 10.0, size=(n, 5))
 
-            # Generate random coverage matrix.
             m = 30
             rows, cols = [], []
             for i in range(n):
@@ -1435,7 +1188,6 @@ class TestSubmodularApproximation:
             utility = CoverageFunction(cov_mat)
             metric = EuclideanDistance()
 
-            # Run GIST with a unique seed per trial.
             result = gist(pts, utility, metric, k=k, lam=lam, eps=eps, seed=trial)
 
             # Compute a greedy-only baseline (d=0) as a rough lower bound
@@ -1464,13 +1216,7 @@ class TestSubmodularApproximation:
 
 
 class TestLinearApproximation:
-    """**Validates: Requirements 7.1, 7.2**
-
-    Verify that GIST achieves the (2/3 - eps) approximation ratio from
-    Theorem 3.3 for linear utility (LinearUtility with non-negative weights).
-    """
-
-    # Feature: gist-paper-verification, Property 9: Linear (2/3 - ε) Approximation Ratio
+    """Linear (2/3 - eps) approximation ratio."""
 
     @given(data=st.data())
     @settings(
@@ -1479,19 +1225,13 @@ class TestLinearApproximation:
         suppress_health_check=[HealthCheck.too_slow],
     )
     def test_linear_approximation_ratio(self, data):
-        """**Validates: Requirements 7.1**
-
-        For small instances (n <= 8, k <= 4), generate random non-negative
-        weights and points, run gist() with LinearUtility, compute the
-        brute-force optimal, and verify f(S_gist) >= (2/3 - eps) * f(S_opt).
-        """
+        """For small instances (n <= 8, k <= 4), generate random non-negative weights and points, run gist() with LinearUtility, compute the brute-force optimal, and verify f(S_gist) >= (2/3 - eps) * f(S_opt)."""
         eps = 0.1
         lam = data.draw(
             st.floats(min_value=0.1, max_value=10.0, allow_nan=False, allow_infinity=False),
             label="lam",
         )
 
-        # Generate small point set.
         pts = data.draw(random_points(n_max=8, d_max=3), label="points")
         n = len(pts)
         k = data.draw(st.integers(min_value=2, max_value=min(4, n)), label="k")
@@ -1501,16 +1241,12 @@ class TestLinearApproximation:
         utility = LinearUtility(weights)
         metric = EuclideanDistance()
 
-        # Prepare points (as the algorithm does internally).
         prepared = metric.prepare(pts)
 
-        # Run GIST.
         result = gist(pts, utility, metric, k=k, lam=lam, eps=eps, seed=42)
 
-        # Brute-force optimal.
         _, opt_f = brute_force_optimal(prepared, utility, metric, k, lam)
 
-        # The approximation guarantee: f(S_gist) >= (2/3 - eps) * f(S_opt).
         ratio_bound = (2.0 / 3.0 - eps)
         if opt_f > 0:
             assert result.objective_value >= ratio_bound * opt_f - 1e-9, (
@@ -1523,21 +1259,13 @@ class TestLinearApproximation:
             )
 
     def test_linear_ratio_statistical(self):
-        """**Validates: Requirements 7.2**
-
-        For medium instances (n=50, k=10), run gist() multiple times with
-        different seeds and verify the empirical approximation ratio > 0.60.
-
-        Since brute-force is too slow for n=50, we use an upper bound:
-        f(S_opt) <= sum(weights) + lam * d_max.
-        """
+        """For medium instances (n=50, k=10), run gist() multiple times with different seeds and verify the empirical approximation ratio > 0.60. Since brute-force is too slow for n=50, we use an upper bound: f(S_opt) <= sum(weights) + lam * d_max."""
         rng = np.random.default_rng(54321)
         n, k, lam, eps = 50, 10, 1.0, 0.1
         n_trials = 10
         min_ratio = float("inf")
 
         for trial in range(n_trials):
-            # Generate random points.
             pts = rng.uniform(-10.0, 10.0, size=(n, 5))
 
             # Generate non-negative weights.
@@ -1545,7 +1273,6 @@ class TestLinearApproximation:
             utility = LinearUtility(weights)
             metric = EuclideanDistance()
 
-            # Run GIST with a unique seed per trial.
             result = gist(pts, utility, metric, k=k, lam=lam, eps=eps, seed=trial)
 
             # Upper bound: f(S_opt) <= sum_of_top_k_weights + lam * d_max.
@@ -1566,14 +1293,7 @@ class TestLinearApproximation:
 
 
 class TestWarmupApproximation:
-    """**Validates: Requirements 14.1**
-
-    Verify the warm-up result that max{f(S_greedy), f(T_pair)} achieves
-    a (e-1)/(2e-1) approximation ratio (≈ 0.387) on small brute-force-
-    verifiable instances.
-    """
-
-    # Feature: gist-paper-verification, Property 16: Warm-up (e-1)/(2e-1) Approximation
+    """Warm-up (e-1)/(2e-1) approximation."""
 
     @given(data=st.data())
     @settings(
@@ -1582,15 +1302,7 @@ class TestWarmupApproximation:
         suppress_health_check=[HealthCheck.too_slow],
     )
     def test_warmup_approximation_ratio(self, data):
-        """**Validates: Requirements 14.1**
-
-        For small instances (n <= 8, k <= 4), compute:
-        - S_greedy = _greedy_independent_set(points, utility, metric, 0.0, k)
-        - T_pair = diametrical pair from approximate_diameter
-        - f_warmup = max(f(S_greedy), f(T_pair))
-        - f_opt from brute_force_optimal
-        Verify f_warmup >= ((e-1)/(2e-1) - eps) * f_opt.
-        """
+        """For small instances (n <= 8, k <= 4), compute: - S_greedy = _greedy_independent_set(points, utility, metric, 0.0, k) - T_pair = diametrical pair from approximate_diameter - f_warmup = max(f(S_greedy), f(T_pair)) - f_opt from brute_force_optimal Verify f_warmup >= ((e-1)/(2e-1) - eps) * f_opt."""
         import math
 
         eps = 0.1
@@ -1599,7 +1311,6 @@ class TestWarmupApproximation:
             label="lam",
         )
 
-        # Generate small point set.
         pts = data.draw(random_points(n_max=8, d_max=3), label="points")
         n = len(pts)
         k = data.draw(st.integers(min_value=2, max_value=min(4, n)), label="k")
@@ -1634,10 +1345,8 @@ class TestWarmupApproximation:
         # Warm-up: max of the two.
         f_warmup = max(f_greedy, f_pair)
 
-        # Brute-force optimal.
         _, opt_f = brute_force_optimal(prepared, utility, metric, k, lam)
 
-        # The warm-up approximation guarantee:
         # f_warmup >= ((e-1)/(2e-1) - eps) * f_opt
         e = math.e
         ratio_bound = (e - 1.0) / (2.0 * e - 1.0) - eps
@@ -1655,20 +1364,12 @@ class TestWarmupApproximation:
 
 
 # ---------------------------------------------------------------------------
-# Property 10: Lemma 3.2 — Submodular Bicriteria
+# Lemma 3.2 — Submodular Bicriteria
 # ---------------------------------------------------------------------------
 
 
 class TestLemma32Bicriteria:
-    """**Validates: Requirements 8.1**
-
-    Verify Lemma 3.2: for any threshold d and d' < d/2, the set
-    T = GreedyIndependentSet(V, g, d', k) satisfies g(T) >= g(S_d*)/2
-    where g is a monotone submodular function (CoverageFunction) and
-    S_d* is the optimal d-independent set found by brute-force enumeration.
-    """
-
-    # Feature: gist-paper-verification, Property 10: Lemma 3.2 — Submodular Bicriteria
+    """Lemma 3.2 submodular bicriteria guarantee."""
 
     @given(data=st.data())
     @settings(
@@ -1677,20 +1378,9 @@ class TestLemma32Bicriteria:
         suppress_health_check=[HealthCheck.too_slow],
     )
     def test_lemma_32_submodular_bicriteria(self, data):
-        """**Validates: Requirements 8.1**
-
-        For small instances (n <= 8, k <= 4):
-        1. Generate random points and a CoverageFunction.
-        2. Draw a threshold d > 0.
-        3. Compute d' = d/2 * factor where factor < 1 (so d' < d/2).
-        4. Enumerate all d-independent sets via brute_force_d_independent_sets
-           and find S_d* (the one maximising g).
-        5. Run _greedy_independent_set with threshold d' to get T.
-        6. Assert g(T) >= g(S_d*)/2.
-        """
+        """For small instances (n <= 8, k <= 4): 1. Generate random points and a CoverageFunction. 2. Draw a threshold d > 0. 3. Compute d' = d/2 * factor where factor < 1 (so d' < d/2). 4. Enumerate all d-independent sets via brute_force_d_independent_sets and find S_d* (the one maximising g). 5. Run _greedy_independent_set with threshold d' to get T. 6. Assert g(T) >= g(S_d*)/2."""
         from hypothesis import assume
 
-        # Generate small point set.
         pts = data.draw(random_points(n_max=8, d_max=3), label="points")
         n = len(pts)
         k = data.draw(st.integers(min_value=1, max_value=min(4, n)), label="k")
@@ -1745,20 +1435,7 @@ class TestLemma32Bicriteria:
 
 
 class TestLemmaC1Bicriteria:
-    """**Validates: Requirements 9.1**
-
-    Verify Lemma C.1: for any threshold d and d' <= d/2, the set
-    T = GreedyIndependentSet(V, g, d', k) satisfies g(T) >= g(S_d*)
-    where g is a linear utility (LinearUtility with non-negative weights)
-    and S_d* is the optimal d-independent set found by brute-force
-    enumeration.
-
-    NOTE: Unlike Lemma 3.2 (d' < d/2, half guarantee), Lemma C.1 uses
-    d' <= d/2 (non-strict) and provides the full g(T) >= g(S_d*)
-    guarantee because linear functions are modular.
-    """
-
-    # Feature: gist-paper-verification, Property 11: Lemma C.1 — Linear Bicriteria
+    """Lemma C.1 linear bicriteria guarantee."""
 
     @given(data=st.data())
     @settings(
@@ -1767,20 +1444,9 @@ class TestLemmaC1Bicriteria:
         suppress_health_check=[HealthCheck.too_slow],
     )
     def test_lemma_c1_linear_bicriteria(self, data):
-        """**Validates: Requirements 9.1**
-
-        For small instances (n <= 8, k <= 4):
-        1. Generate random points and a LinearUtility with non-negative weights.
-        2. Draw a threshold d > 0.
-        3. Compute d' = d/2 * factor where factor in (0, 1.0] (so d' <= d/2).
-        4. Enumerate all d-independent sets via brute_force_d_independent_sets
-           and find S_d* (the one maximising g).
-        5. Run _greedy_independent_set with threshold d' to get T.
-        6. Assert g(T) >= g(S_d*).
-        """
+        """For small instances (n <= 8, k <= 4): 1. Generate random points and a LinearUtility with non-negative weights. 2. Draw a threshold d > 0. 3. Compute d' = d/2 * factor where factor in (0, 1.0] (so d' <= d/2). 4. Enumerate all d-independent sets via brute_force_d_independent_sets and find S_d* (the one maximising g). 5. Run _greedy_independent_set with threshold d' to get T. 6. Assert g(T) >= g(S_d*)."""
         from hypothesis import assume
 
-        # Generate small point set.
         pts = data.draw(random_points(n_max=8, d_max=3), label="points")
         n = len(pts)
         k = data.draw(st.integers(min_value=1, max_value=min(4, n)), label="k")
@@ -1834,51 +1500,10 @@ class TestLemmaC1Bicriteria:
 
 
 class TestAppendixANonSubmodularity:
-    """**Validates: Requirements 10.1**
-
-    Construct the Appendix A counterexample showing that the combined
-    objective f(S) = g(S) + λ·div(S) is NOT submodular, even when g is
-    submodular (in fact, modular/linear).
-
-    The key insight is that div(S) = min pairwise distance, and adding a
-    point can catastrophically reduce the min pairwise distance in a
-    well-spread set while barely affecting a set that already has a small
-    min pairwise distance.  This asymmetry violates diminishing returns.
-    """
+    """Appendix A non-submodularity counterexample."""
 
     def test_appendix_a_non_submodularity(self):
-        """Demonstrate that f(S) = g(S) + λ·div(S) violates diminishing
-        returns by finding S ⊆ T and v ∉ T with f(v|S) < f(v|T).
-
-        Construction
-        ------------
-        Four collinear points:
-            p0 = [0, 0], p1 = [1, 0], p2 = [10, 0], p3 = [11, 0]
-
-        Utility: LinearUtility with equal weights [1, 1, 1, 1].
-        λ = 10 (large enough to amplify the diversity collapse).
-
-        Sets:
-            S  = {p0, p2}          (subset)
-            T  = {p0, p2, p3}      (superset, S ⊆ T)
-            v  = p1                 (v ∉ T)
-
-        Marginal gains:
-            f(S)       = g({0,2}) + 10·div({0,2})
-                       = 2 + 10·10 = 102
-            f(S∪{v})   = g({0,1,2}) + 10·div({0,1,2})
-                       = 3 + 10·min(1, 9, 10) = 3 + 10·1 = 13
-            f(v|S)     = 13 − 102 = −89
-
-            f(T)       = g({0,2,3}) + 10·div({0,2,3})
-                       = 3 + 10·min(10, 1, 11) = 3 + 10·1 = 13
-            f(T∪{v})   = g({0,1,2,3}) + 10·div({0,1,2,3})
-                       = 4 + 10·min(1, 9, 10, 1, 11, 10) = 4 + 10·1 = 14
-            f(v|T)     = 14 − 13 = 1
-
-        Since S ⊆ T but f(v|S) = −89 < f(v|T) = 1, diminishing returns
-        is violated, proving f is not submodular.
-        """
+        """Appendix A counterexample: f = g + lambda*div is not submodular."""
         points = np.array(
             [[0.0, 0.0], [1.0, 0.0], [10.0, 0.0], [11.0, 0.0]]
         )
@@ -1928,46 +1553,11 @@ class TestAppendixANonSubmodularity:
 
 
 class TestAppendixBGreedyFailure:
-    """**Validates: Requirements 11.1**
-
-    Construct the Appendix B parameterized instance showing that the
-    standard greedy algorithm applied directly to f(S) = g(S) + lam*div(S)
-    does not give a constant-factor approximation guarantee.
-
-    Paper construction (Appendix B)
-    --------------------------------
-    * n points, g(S) = |S| (unit weights), lam = 1.
-    * A distinguished pair (u, v) with dist(u, v) = 2 + 2*eps.
-    * All other pairs (x, y) != (u, v) have dist(x, y) = 1 + eps.
-    * d_max = 2 + 2*eps.
-
-    Greedy behaviour:
-        Step 1: pick u (or v); singleton f = 1 + d_max = 3 + 2*eps.
-        Step 2: pick v; f({u,v}) = 2 + (2+2*eps) = 4 + 2*eps.
-                Any other point w gives f({u,w}) = 2 + (1+eps) = 3+eps,
-                which is worse.
-        Step 3+: adding any point w to {u,v} gives
-                 f({u,v,w}) = 3 + min(2+2*eps, 1+eps, 1+eps) = 4 + eps.
-                 Marginal = (4+eps) - (4+2*eps) = -eps < 0.
-                 Standard greedy rejects negative marginals and stops.
-
-    Greedy result: f = 4 + 2*eps (size 2).
-    Optimal of size k: any k-subset (k >= 2) has div = 1+eps (the min
-    over all non-(u,v) pairs), so f = k + (1+eps).
-    Ratio = (4+2*eps) / (k+1+eps) -> 0 as k -> inf.
-
-    This uses a custom distance metric (not Euclidean) via
-    ``CallableDistance``.
-    """
+    """Appendix B greedy failure counterexample."""
 
     @staticmethod
     def _naive_greedy_on_f(points, utility, metric, k, lam, d_max):
-        """Standard greedy that directly maximizes f(S) = g(S) + lam*div(S).
-
-        At each step, pick the element v maximizing f(S | {v}).
-        Reject (stop) if the best marginal gain is negative -- this is
-        the standard greedy behaviour described in Appendix B.
-        """
+        """Standard greedy that directly maximizes f(S) = g(S) + lam*div(S). At each step, pick the element v maximizing f(S | {v}). Reject (stop) if the best marginal gain is negative -- this is the standard greedy behaviour described in Appendix B."""
         n = len(points)
         selected = []
         remaining = set(range(n))
@@ -2002,12 +1592,7 @@ class TestAppendixBGreedyFailure:
         return selected
 
     def test_appendix_b_greedy_failure(self):
-        """Demonstrate that naive greedy on f has vanishing ratio.
-
-        For increasing problem sizes k, the ratio
-        f(S_greedy) / f(S_opt) decreases toward 0, confirming that
-        standard greedy on f offers no constant-factor guarantee.
-        """
+        """Demonstrate that naive greedy on f has vanishing ratio. For increasing problem sizes k, the ratio f(S_greedy) / f(S_opt) decreases toward 0, confirming that standard greedy on f offers no constant-factor guarantee."""
         from gist.distances import CallableDistance
 
         eps_val = 0.01
@@ -2093,23 +1678,16 @@ class TestAppendixBGreedyFailure:
 
 
 # ---------------------------------------------------------------------------
-# Property 17: k >= n Bound
-# Property 18: λ=0 Reduces to Pure Greedy
-# Validates: Requirements 15.1, 15.2, 15.3, 15.4, 15.5
+# k >= n Bound
+# λ=0 Reduces to Pure Greedy
 # ---------------------------------------------------------------------------
 
 
 class TestEdgeCases:
-    """Edge-case tests for the GIST algorithm.
-
-    Covers k=1, k>=n, identical points, collinear points, and λ=0.
-    """
+    """Edge cases: k >= n, identical points, lambda=0."""
 
     def test_k_equals_1(self):
-        """k=1: GIST returns the single element maximizing g({v}) + λ·d_max.
-
-        Validates: Requirements 15.1
-        """
+        """k=1: GIST returns the single element maximizing g({v}) + λ·d_max."""
         metric = EuclideanDistance()
         # 4 points with distinct weights; point 2 has the highest weight.
         points = np.array([
@@ -2141,14 +1719,10 @@ class TestEdgeCases:
         expected_obj = float(weights[expected_idx]) + lam * d_max
         assert result.objective_value == pytest.approx(expected_obj, rel=1e-9)
 
-    # Feature: gist-paper-verification, Property 17: k >= n Bound
     @given(data=st.data())
     @settings(paper_verification_settings)
     def test_k_geq_n_returns_at_most_n(self, data):
-        """For any n points and k >= n, GIST returns at most n points.
-
-        **Validates: Requirements 15.2**
-        """
+        """For any n points and k >= n, GIST returns at most n points."""
         points = data.draw(random_points(n_max=15, d_max=5))
         n = len(points)
         weights = data.draw(random_weights(n))
@@ -2169,10 +1743,7 @@ class TestEdgeCases:
         assert len(set(result.indices)) == len(result.indices)
 
     def test_identical_points(self):
-        """All identical points: d_max=0, threshold sweep skipped, div(S)=0.
-
-        Validates: Requirements 15.3
-        """
+        """All identical points: d_max=0, threshold sweep skipped, div(S)=0."""
         metric = EuclideanDistance()
         n = 5
         # All points are the same.
@@ -2200,10 +1771,7 @@ class TestEdgeCases:
         assert selected_weights == pytest.approx(top_3_weights, rel=1e-9)
 
     def test_collinear_points(self):
-        """Collinear points: correct pairwise distances and valid solution.
-
-        Validates: Requirements 15.4
-        """
+        """Collinear points: correct pairwise distances and valid solution."""
         metric = EuclideanDistance()
         # 5 collinear points on the x-axis.
         points = np.array([[float(i), 0.0] for i in range(5)])
@@ -2233,14 +1801,10 @@ class TestEdgeCases:
         div_manual = compute_diversity(prepared, metric, list(result.indices))
         assert result.diversity == pytest.approx(div_manual, rel=1e-9)
 
-    # Feature: gist-paper-verification, Property 18: λ=0 Reduces to Pure Greedy
     @given(data=st.data())
     @settings(paper_verification_settings)
     def test_lambda_zero_is_pure_greedy(self, data):
-        """With λ=0, GIST reduces to pure greedy on g (top-k by weight for LinearUtility).
-
-        **Validates: Requirements 15.5**
-        """
+        """With λ=0, GIST reduces to pure greedy on g (top-k by weight for LinearUtility)."""
         points = data.draw(random_points(n_max=15, d_max=5))
         n = len(points)
         k = data.draw(st.integers(min_value=1, max_value=n))
@@ -2276,19 +1840,12 @@ class TestEdgeCases:
 
 
 class TestApproximateDiameter:
-    """Verify approximate_diameter consistency, lower-bound property, and edge cases.
+    """Approximate diameter consistency and monotonicity."""
 
-    **Validates: Requirements 16.1, 16.2, 16.3, 16.4**
-    """
-
-    # Feature: gist-paper-verification, Property 19: Diameter Consistency
     @given(data=st.data())
     @settings(paper_verification_settings)
     def test_diameter_consistency(self, data):
-        """Returned d_max must equal dist(points[u], points[v]).
-
-        **Validates: Requirements 16.1**
-        """
+        """Returned d_max must equal dist(points[u], points[v])."""
         points = data.draw(random_points(n_max=15, d_max=5))
         metric = EuclideanDistance()
         prepared = metric.prepare(points)
@@ -2304,14 +1861,10 @@ class TestApproximateDiameter:
             f"d_max={d_max} != dist(points[{u}], points[{v}])={dist_uv}"
         )
 
-    # Feature: gist-paper-verification, Property 20: Diameter Lower Bound
     @given(data=st.data())
     @settings(paper_verification_settings)
     def test_diameter_is_lower_bound(self, data):
-        """d_max <= true_diameter on small instances.
-
-        **Validates: Requirements 16.3**
-        """
+        """d_max <= true_diameter on small instances."""
         # Use small instances so brute-force true diameter is cheap.
         points = data.draw(random_points(n_max=10, d_max=5))
         metric = EuclideanDistance()
@@ -2327,10 +1880,7 @@ class TestApproximateDiameter:
         )
 
     def test_diameter_exact_on_collinear_points(self):
-        """On collinear points the double-scan heuristic finds the exact diameter.
-
-        **Validates: Requirements 16.2**
-        """
+        """On collinear points the double-scan heuristic finds the exact diameter."""
         # Points on a line: 0, 1, 2, ..., 9
         points = np.arange(10, dtype=np.float64).reshape(-1, 1)
         metric = EuclideanDistance()
@@ -2348,10 +1898,7 @@ class TestApproximateDiameter:
         assert {u, v} == {0, 9}, f"Expected endpoints {{0, 9}}, got {{{u}, {v}}}"
 
     def test_diameter_improves_with_more_starts(self):
-        """More starts should yield a diameter estimate >= fewer starts.
-
-        **Validates: Requirements 16.4**
-        """
+        """More starts should yield a diameter estimate >= fewer starts."""
         # Use a moderately sized random point cloud where 1 start may miss.
         rng_gen = np.random.default_rng(123)
         points = rng_gen.standard_normal((50, 5))
@@ -2369,15 +1916,12 @@ class TestApproximateDiameter:
             d5, _, _ = approximate_diameter(
                 prepared, metric, np.random.default_rng(seed), n_starts=5
             )
-            # More starts must be at least as good (first start is the same seed).
             assert d5 >= d1 - 1e-12, (
                 f"Trial {trial}: n_starts=5 gave {d5} < n_starts=1 gave {d1}"
             )
             if d5 > d1 + 1e-12:
                 improvements += 1
 
-        # On a 50-point cloud in 5D, at least some trials should see improvement.
-        # This is a soft statistical check — we just need *some* improvement.
         assert improvements > 0, "Expected at least one trial to improve with more starts"
 
 
@@ -2387,23 +1931,12 @@ class TestApproximateDiameter:
 
 
 class TestParallelEquivalence:
-    """Verify that parallel threshold sweep (n_jobs > 1) produces objective >= sequential.
+    """Parallel threshold sweep objective >= sequential."""
 
-    The parallel sweep evaluates ALL thresholds without early stopping, while
-    sequential (n_jobs=1) uses early stopping. So parallel should produce
-    objective >= sequential.
-
-    **Validates: Requirements 17.1, 17.2**
-    """
-
-    # Feature: gist-paper-verification, Property 21: Parallel >= Sequential
     @given(data=st.data())
     @settings(paper_verification_settings)
     def test_parallel_geq_sequential(self, data):
-        """n_jobs > 1 objective >= n_jobs = 1 objective.
-
-        **Validates: Requirements 17.1, 17.2**
-        """
+        """n_jobs > 1 objective >= n_jobs = 1 objective."""
         joblib = pytest.importorskip("joblib")  # noqa: F841
 
         points = data.draw(random_points(n_max=12, d_max=4))
@@ -2418,17 +1951,14 @@ class TestParallelEquivalence:
         metric = EuclideanDistance()
         prepared = metric.prepare(points)
 
-        # Pre-compute diameter so both calls start from the same state.
         rng = np.random.default_rng(seed)
         diam = approximate_diameter(points, metric, rng, n_starts=5)
 
-        # Sequential (n_jobs=1) — uses early stopping.
         result_seq = gist(
             points, utility, metric, k,
             lam=lam, eps=eps, n_jobs=1, seed=seed, diameter=diam,
         )
 
-        # Parallel (n_jobs=2) — evaluates all thresholds.
         result_par = gist(
             points, utility, metric, k,
             lam=lam, eps=eps, n_jobs=2, seed=seed, diameter=diam,
@@ -2441,23 +1971,12 @@ class TestParallelEquivalence:
 
 
 class TestEarlyStopping:
-    """Verify that the sequential early stopping optimisation is safe.
+    """Early stopping monotonicity and equivalence."""
 
-    When GreedyIndependentSet returns |S| <= 1 at some threshold d, all
-    larger thresholds will also produce |S| <= 1 (monotonicity).  Therefore
-    the sequential sweep can break early without missing better solutions.
-
-    **Validates: Requirements 18.1, 18.2**
-    """
-
-    # Feature: gist-paper-verification, Property 22: Early Stopping Monotonicity
     @given(data=st.data())
     @settings(paper_verification_settings)
     def test_early_stopping_monotonicity(self, data):
-        """If |S| <= 1 at threshold d, same holds for all d' > d.
-
-        **Validates: Requirements 18.1**
-        """
+        """If |S| <= 1 at threshold d, same holds for all d' > d."""
         points = data.draw(random_points(n_max=12, d_max=4))
         n = len(points)
         weights = data.draw(random_weights(n))
@@ -2473,12 +1992,10 @@ class TestEarlyStopping:
         d_max, _u, _v = approximate_diameter(prepared, metric, rng, n_starts=5)
 
         if d_max <= 0:
-            return  # Degenerate — all points coincide, nothing to check.
+            return
 
         thresholds = _build_thresholds(d_max, eps)
 
-        # Walk thresholds in order; once we see |S| <= 1, all subsequent
-        # thresholds must also yield |S| <= 1.
         seen_singleton = False
         singleton_threshold = None
         for d_val in thresholds:
@@ -2494,14 +2011,10 @@ class TestEarlyStopping:
                 seen_singleton = True
                 singleton_threshold = d_val
 
-    # Feature: gist-paper-verification, Property 23: Early Stopping Equivalence
     @given(data=st.data())
     @settings(paper_verification_settings)
     def test_early_stopping_equivalence(self, data):
-        """Sequential GIST (with early stopping) matches full sweep objective.
-
-        **Validates: Requirements 18.2**
-        """
+        """Sequential GIST (with early stopping) matches full sweep objective."""
         points = data.draw(random_points(n_max=12, d_max=4))
         n = len(points)
         weights = data.draw(random_weights(n))
@@ -2518,14 +2031,11 @@ class TestEarlyStopping:
         diam = approximate_diameter(points, metric, rng, n_starts=5)
         d_max, u, v = diam
 
-        # --- Sequential GIST (with early stopping) ---
         result_seq = gist(
             points, utility, metric, k,
             lam=lam, eps=eps, n_jobs=1, seed=seed, diameter=diam,
         )
 
-        # --- Manual full sweep (no early stopping) ---
-        # Start from the same greedy baseline.
         greedy_sel, greedy_min_pw = _greedy_independent_set(
             prepared, utility, metric, 0.0, k,
         )
@@ -2533,7 +2043,6 @@ class TestEarlyStopping:
             prepared, utility, metric, greedy_sel, lam, d_max,
         )
 
-        # Diametrical pair candidate.
         if k >= 2 and d_max > 0:
             pair_obj = compute_objective(
                 prepared, utility, metric, [u, v], lam, d_max,
@@ -2571,24 +2080,12 @@ class TestEarlyStopping:
 
 
 class TestExactDiameter:
-    """Verify that exact_diameter() returns the true maximum pairwise distance.
-
-    Property 24: Exact Diameter Correctness
-    Property 25: Exact Diameter Consistency (returned d_max == dist(u, v))
-    Property 26: Exact Diameter Dominates Approximate Diameter
-
-    Validates: Requirements 19.1, 19.2, 19.3, 19.4
-    """
-
-    # -- Property 24: exact_diameter returns the true maximum (Req 19.1) --
+    """Exact diameter correctness and edge cases."""
 
     @paper_verification_settings
     @given(pts=random_points(n_max=12, d_max=5))
     def test_exact_diameter_equals_true_max(self, pts):
-        """exact_diameter() must equal the brute-force maximum pairwise distance.
-
-        Validates: Requirements 19.1
-        """
+        """exact_diameter() must equal the brute-force maximum pairwise distance."""
         metric = EuclideanDistance()
         prepared = metric.prepare(pts.copy())
 
@@ -2599,15 +2096,10 @@ class TestExactDiameter:
             f"exact_diameter returned {d_max} but true max is {true_max}"
         )
 
-    # -- Property 25: returned d_max == dist(u, v) (Req 19.2) -------------
-
     @paper_verification_settings
     @given(pts=random_points(n_max=12, d_max=5))
     def test_exact_diameter_consistency(self, pts):
-        """The returned d_max must equal dist(points[u], points[v]).
-
-        Validates: Requirements 19.2
-        """
+        """The returned d_max must equal dist(points[u], points[v])."""
         metric = EuclideanDistance()
         prepared = metric.prepare(pts.copy())
 
@@ -2620,18 +2112,10 @@ class TestExactDiameter:
             f"d_max={d_max} != dist(points[{u}], points[{v}])={dist_uv}"
         )
 
-    # -- Property 26: exact >= approximate (Req 19.3) ----------------------
-
     @paper_verification_settings
     @given(pts=random_points(n_max=12, d_max=5))
     def test_exact_diameter_geq_approximate(self, pts):
-        """exact_diameter() >= approximate_diameter() for all inputs.
-
-        The approximate heuristic can only underestimate; the exact result
-        is the true maximum, so it must be >= any approximation.
-
-        Validates: Requirements 19.3
-        """
+        """exact_diameter() >= approximate_diameter() for all inputs. The approximate heuristic can only underestimate; the exact result is the true maximum, so it must be >= any approximation."""
         metric = EuclideanDistance()
         prepared = metric.prepare(pts.copy())
 
@@ -2642,13 +2126,8 @@ class TestExactDiameter:
             f"exact_diameter={d_exact} < approximate_diameter={d_approx}"
         )
 
-    # -- Unit: edge cases (Req 19.4) ---------------------------------------
-
     def test_exact_diameter_empty_raises(self):
-        """exact_diameter on an empty array raises ValueError.
-
-        Validates: Requirements 19.4
-        """
+        """exact_diameter on an empty array raises ValueError."""
         metric = EuclideanDistance()
         pts = np.empty((0, 2), dtype=np.float64)
         prepared = metric.prepare(pts)
@@ -2666,10 +2145,7 @@ class TestExactDiameter:
             approximate_diameter(prepared, metric, np.random.default_rng(42))
 
     def test_exact_diameter_single_point(self):
-        """exact_diameter on a single point returns (0.0, 0, 0).
-
-        Validates: Requirements 19.4
-        """
+        """exact_diameter on a single point returns (0.0, 0, 0)."""
         metric = EuclideanDistance()
         pts = np.array([[3.0, 4.0]])
         prepared = metric.prepare(pts)
@@ -2681,10 +2157,7 @@ class TestExactDiameter:
         assert v == 0
 
     def test_exact_diameter_two_points(self):
-        """exact_diameter on two points returns their distance.
-
-        Validates: Requirements 19.4
-        """
+        """exact_diameter on two points returns their distance."""
         metric = EuclideanDistance()
         pts = np.array([[0.0, 0.0], [3.0, 4.0]])
         prepared = metric.prepare(pts)
@@ -2695,10 +2168,7 @@ class TestExactDiameter:
         assert {u, v} == {0, 1}
 
     def test_exact_diameter_collinear(self):
-        """On collinear points the diameter is the distance between the endpoints.
-
-        Validates: Requirements 19.4
-        """
+        """On collinear points the diameter is the distance between the endpoints."""
         metric = EuclideanDistance()
         pts = np.arange(10, dtype=np.float64).reshape(-1, 1)
         prepared = metric.prepare(pts)
@@ -2709,10 +2179,7 @@ class TestExactDiameter:
         assert {u, v} == {0, 9}
 
     def test_exact_diameter_identical_points(self):
-        """All identical points: diameter is 0.
-
-        Validates: Requirements 19.4
-        """
+        """All identical points: diameter is 0."""
         metric = EuclideanDistance()
         pts = np.ones((5, 3), dtype=np.float64)
         prepared = metric.prepare(pts)
@@ -2722,25 +2189,19 @@ class TestExactDiameter:
         assert d == pytest.approx(0.0, abs=1e-12)
 
     def test_exact_diameter_known_value(self):
-        """Verify exact_diameter on a hand-crafted example with known answer.
-
-        Points: unit square corners + center.
-        True diameter = sqrt(2) (diagonal of the unit square).
-        """
+        """Verify exact_diameter on a hand-crafted example with known answer. Points: unit square corners + center. True diameter = sqrt(2) (diagonal of the unit square)."""
         metric = EuclideanDistance()
         pts = np.array([
             [0.0, 0.0],
             [1.0, 0.0],
             [0.0, 1.0],
             [1.0, 1.0],
-            [0.5, 0.5],  # center — not the diameter pair
         ])
         prepared = metric.prepare(pts)
 
         d, u, v = exact_diameter(prepared, metric)
 
         assert d == pytest.approx(np.sqrt(2.0), rel=1e-9)
-        # The diameter pair must be one of the four diagonal pairs.
         assert {u, v} in ({0, 3}, {1, 2}), (
             f"Expected a diagonal pair, got {{{u}, {v}}}"
         )
@@ -2748,10 +2209,7 @@ class TestExactDiameter:
     @paper_verification_settings
     @given(pts=random_points(n_max=12, d_max=5))
     def test_exact_diameter_non_negative(self, pts):
-        """exact_diameter() must always return a non-negative distance.
-
-        Validates: Requirements 19.1
-        """
+        """exact_diameter() must always return a non-negative distance."""
         metric = EuclideanDistance()
         prepared = metric.prepare(pts.copy())
 
@@ -2764,10 +2222,7 @@ class TestExactDiameter:
     @paper_verification_settings
     @given(pts=random_points(n_max=12, d_max=5))
     def test_exact_diameter_indices_valid(self, pts):
-        """Returned indices u, v must be valid indices into the point array.
-
-        Validates: Requirements 19.2
-        """
+        """Returned indices u, v must be valid indices into the point array."""
         metric = EuclideanDistance()
         prepared = metric.prepare(pts.copy())
         n = len(prepared)
@@ -2778,10 +2233,7 @@ class TestExactDiameter:
         assert 0 <= v < n, f"v={v} out of range [0, {n})"
 
     def test_exact_diameter_cosine(self):
-        """exact_diameter works correctly with CosineDistance.
-
-        Validates: Requirements 19.1 (metric-agnostic)
-        """
+        """exact_diameter works correctly with CosineDistance."""
         metric = CosineDistance()
         # Opposite unit vectors have cosine distance = 2 (max possible).
         pts = np.array([
@@ -2793,7 +2245,6 @@ class TestExactDiameter:
 
         d, u, v = exact_diameter(prepared, metric)
 
-        # dist([1,0], [-1,0]) = 1 - cos(180°) = 1 - (-1) = 2.0
         assert d == pytest.approx(2.0, rel=1e-9)
         assert {u, v} == {0, 1}
 
@@ -2804,22 +2255,12 @@ class TestExactDiameter:
 
 
 class TestExactVsApproximateDiameter:
-    """Compare exact_diameter and approximate_diameter on the same inputs.
-
-    Property 27: Exact diameter is an upper bound on approximate diameter.
-    Property 28: On easy instances (collinear, 2-point) both agree exactly.
-    Property 29: Approximate diameter is a lower bound on exact diameter.
-
-    Validates: Requirements 20.1, 20.2, 20.3
-    """
+    """Exact vs approximate diameter comparison."""
 
     @paper_verification_settings
     @given(pts=random_points(n_max=12, d_max=5))
     def test_exact_geq_approx_always(self, pts):
-        """exact_diameter >= approximate_diameter for all random inputs.
-
-        Validates: Requirements 20.1
-        """
+        """exact_diameter >= approximate_diameter for all random inputs."""
         metric = EuclideanDistance()
         prepared = metric.prepare(pts.copy())
 
@@ -2834,10 +2275,7 @@ class TestExactVsApproximateDiameter:
             )
 
     def test_both_agree_on_two_points(self):
-        """On a 2-point set, exact and approximate must return the same distance.
-
-        Validates: Requirements 20.2
-        """
+        """On a 2-point set, exact and approximate must return the same distance."""
         metric = EuclideanDistance()
         pts = np.array([[0.0, 0.0], [3.0, 4.0]])
         prepared = metric.prepare(pts)
@@ -2851,10 +2289,7 @@ class TestExactVsApproximateDiameter:
         assert d_exact == pytest.approx(5.0, rel=1e-9)
 
     def test_both_agree_on_collinear(self):
-        """On collinear points, both methods find the exact diameter.
-
-        Validates: Requirements 20.2
-        """
+        """On collinear points, both methods find the exact diameter."""
         metric = EuclideanDistance()
         pts = np.arange(10, dtype=np.float64).reshape(-1, 1)
         prepared = metric.prepare(pts)
@@ -2870,10 +2305,7 @@ class TestExactVsApproximateDiameter:
     @paper_verification_settings
     @given(pts=random_points(n_max=12, d_max=5))
     def test_approx_is_lower_bound_on_exact(self, pts):
-        """approximate_diameter <= exact_diameter (approx is a lower bound).
-
-        Validates: Requirements 20.3
-        """
+        """approximate_diameter <= exact_diameter (approx is a lower bound)."""
         metric = EuclideanDistance()
         prepared = metric.prepare(pts.copy())
 
@@ -2893,26 +2325,12 @@ class TestExactVsApproximateDiameter:
 
 
 class TestGISTExactDiameterFlag:
-    """Verify the exact_diameter parameter of gist().
-
-    Property 30: exact_diameter=True uses exact diameter.
-    Property 31: exact_diameter=False (default) uses approximate diameter.
-    Property 32: precomputed diameter= takes precedence over exact_diameter.
-    Property 33: Both modes match when supplied the same diameter.
-    Property 34: Exact mode satisfies the approximation ratio guarantee.
-
-    Validates: Requirements 21.1, 21.2, 21.3, 21.4, 21.5
-    """
-
-    # -- Property 30: exact mode uses exact diameter (Req 21.1) -----------
+    """gist(exact_diameter=True/False) behaviour."""
 
     @paper_verification_settings
     @given(pts=random_points(n_max=10, d_max=4))
     def test_exact_mode_uses_exact_diameter(self, pts):
-        """gist(exact_diameter=True) matches gist with precomputed exact diameter.
-
-        Validates: Requirements 21.1, 21.3
-        """
+        """gist(exact_diameter=True) matches gist with precomputed exact diameter."""
         n = len(pts)
         weights = np.ones(n, dtype=np.float64)
         utility = LinearUtility(weights)
@@ -2932,13 +2350,8 @@ class TestGISTExactDiameterFlag:
         )
         np.testing.assert_array_equal(result_flag.indices, result_precomputed.indices)
 
-    # -- Property 31: default is approximate (Req 21.2) -------------------
-
     def test_default_uses_approximate_diameter(self):
-        """gist() default (exact_diameter=False) matches explicit False.
-
-        Validates: Requirements 21.2
-        """
+        """gist() default (exact_diameter=False) matches explicit False."""
         pts = np.array([
             [0.0, 0.0], [1.0, 0.0], [2.0, 0.0],
             [3.0, 0.0], [4.0, 0.0],
@@ -2956,13 +2369,8 @@ class TestGISTExactDiameterFlag:
         )
         np.testing.assert_array_equal(result_default.indices, result_explicit.indices)
 
-    # -- Property 32: precomputed diameter takes precedence (Req 21.3) ----
-
     def test_precomputed_diameter_overrides_exact_flag(self):
-        """When diameter= is provided, exact_diameter flag is ignored.
-
-        Validates: Requirements 21.3
-        """
+        """When diameter= is provided, exact_diameter flag is ignored."""
         pts = np.array([
             [0.0, 0.0], [1.0, 0.0], [5.0, 0.0],
         ])
@@ -2970,10 +2378,8 @@ class TestGISTExactDiameterFlag:
         utility = LinearUtility(weights)
         metric = EuclideanDistance()
 
-        # Precomputed diameter: force d_max=5, pair=(0,2).
         precomputed = (5.0, 0, 2)
 
-        # Both calls use the same precomputed diameter regardless of flag.
         result_with_flag = gist(pts, utility, metric, k=2, lam=1.0, seed=42,
                                 diameter=precomputed, exact_diameter=True)
         result_without_flag = gist(pts, utility, metric, k=2, lam=1.0, seed=42,
@@ -2985,31 +2391,20 @@ class TestGISTExactDiameterFlag:
         np.testing.assert_array_equal(result_with_flag.indices,
                                       result_without_flag.indices)
 
-    # -- Property 33: exact mode satisfies approximation ratio (Req 21.4) --
-
     @paper_verification_settings
     @given(pts=random_points(n_max=10, d_max=4))
     def test_exact_mode_dominates_approx_mode_with_same_diameter(self, pts):
-        """When both modes use the same diameter, they produce the same result.
-
-        The only difference between exact_diameter=True and False is which
-        diameter value is used.  If we force both to use the exact diameter,
-        the results must be identical.
-
-        Validates: Requirements 21.4
-        """
+        """When both modes use the same diameter, they produce the same result. The only difference between exact_diameter=True and False is which diameter value is used.  If we force both to use the exact diameter, the results must be identical."""
         n = len(pts)
         weights = np.ones(n, dtype=np.float64)
         utility = LinearUtility(weights)
         metric = EuclideanDistance()
         k = max(1, n // 2)
 
-        # Compute the exact diameter once.
         prepared = metric.prepare(pts.copy())
         d_exact, u, v = exact_diameter(prepared, metric)
         diam = (d_exact, u, v)
 
-        # Both calls use the same precomputed diameter — results must match.
         result_a = gist(pts, utility, metric, k=k, lam=1.0, seed=42,
                         diameter=diam, exact_diameter=True)
         result_b = gist(pts, utility, metric, k=k, lam=1.0, seed=42,
@@ -3023,8 +2418,6 @@ class TestGISTExactDiameterFlag:
         )
         np.testing.assert_array_equal(result_a.indices, result_b.indices)
 
-    # -- Property 34: exact mode satisfies approximation ratio (Req 21.5) -
-
     @given(data=st.data())
     @settings(
         max_examples=100,
@@ -3032,10 +2425,7 @@ class TestGISTExactDiameterFlag:
         suppress_health_check=[HealthCheck.too_slow],
     )
     def test_exact_mode_approximation_ratio(self, data):
-        """gist(exact_diameter=True) satisfies (2/3 - eps) ratio for LinearUtility.
-
-        Validates: Requirements 21.5
-        """
+        """gist(exact_diameter=True) satisfies (2/3 - eps) ratio for LinearUtility."""
         eps = 0.1
         pts = data.draw(random_points(n_max=7, d_max=3), label="points")
         n = len(pts)
@@ -3062,17 +2452,8 @@ class TestGISTExactDiameterFlag:
                 f"ratio={result.objective_value / opt_f:.6f}, bound={ratio_bound:.6f}"
             )
 
-    # -- Unit: exact mode on known instance --------------------------------
-
     def test_exact_mode_known_instance(self):
-        """Verify exact_diameter=True on a hand-crafted instance.
-
-        Points: [0,0], [1,0], [10,0]  — true diameter = 10 (pair 0,2).
-        Approximate diameter (double-scan from any start) also finds 10
-        on this collinear instance, so both modes agree.
-
-        Validates: Requirements 21.1, 21.2
-        """
+        """Exact and approximate modes agree on a collinear three-point instance."""
         pts = np.array([[0.0, 0.0], [1.0, 0.0], [10.0, 0.0]])
         weights = np.array([1.0, 5.0, 5.0])
         utility = LinearUtility(weights)
@@ -3083,46 +2464,32 @@ class TestGISTExactDiameterFlag:
         result_approx = gist(pts, utility, metric, k=2, lam=1.0, seed=42,
                              exact_diameter=False)
 
-        # On collinear points the double-scan finds the exact diameter,
-        # so both modes must agree.
         assert result_exact.objective_value == pytest.approx(
             result_approx.objective_value, rel=1e-9
         )
 
     def test_exact_mode_empty_and_degenerate(self):
-        """exact_diameter=True handles edge cases: empty input, k=0, k=1.
-
-        Validates: Requirements 21.1
-        """
+        """exact_diameter=True handles edge cases: empty input, k=0, k=1."""
         metric = EuclideanDistance()
         utility_empty = LinearUtility(np.empty(0, dtype=np.float64))
 
-        # Empty input.
         result = gist(np.empty((0, 2)), utility_empty, metric, k=5,
                       exact_diameter=True)
         assert len(result.indices) == 0
         assert result.objective_value == 0.0
 
-        # k=0.
         pts = np.array([[0.0, 0.0], [1.0, 0.0]])
         utility = LinearUtility(np.ones(2))
         result = gist(pts, utility, metric, k=0, exact_diameter=True)
         assert len(result.indices) == 0
 
-        # k=1: single point selected.
         result = gist(pts, utility, metric, k=1, lam=1.0, exact_diameter=True)
         assert len(result.indices) == 1
 
     @paper_verification_settings
     @given(pts=random_points(n_max=10, d_max=4))
     def test_exact_mode_result_is_valid(self, pts):
-        """gist(exact_diameter=True) always returns a valid GISTResult.
-
-        Validates: Requirements 21.1
-        - indices are unique and within bounds
-        - objective_value == utility_value + lam * diversity
-        - diversity >= 0
-        """
+        """gist(exact_diameter=True) returns a valid GISTResult."""
         n = len(pts)
         weights = np.ones(n, dtype=np.float64)
         utility = LinearUtility(weights)
@@ -3133,15 +2500,12 @@ class TestGISTExactDiameterFlag:
         result = gist(pts, utility, metric, k=k, lam=lam, seed=42,
                       exact_diameter=True)
 
-        # Valid indices.
         assert len(result.indices) <= k
         assert len(set(result.indices.tolist())) == len(result.indices)
         assert all(0 <= i < n for i in result.indices)
 
-        # Objective decomposition.
         assert result.objective_value == pytest.approx(
             result.utility_value + lam * result.diversity, rel=1e-9, abs=1e-12
         )
 
-        # Non-negative diversity.
         assert result.diversity >= -1e-12
