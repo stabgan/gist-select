@@ -113,11 +113,13 @@ def exact_diameter(
     """Exact diameter via exhaustive O(n²) pairwise distance computation.
 
     Returns the true maximum pairwise distance and the pair of indices
-    that achieve it.  Guarantees the theoretical approximation bounds
-    from the paper hold exactly, at the cost of O(n²) distance calls.
+    that achieve it. When paired with a true metric (satisfying the
+    triangle inequality) and a monotone submodular utility, this
+    guarantees that the paper's theoretical approximation bounds hold.
 
-    Suitable for small datasets (n ≲ 50 000).  For large datasets, prefer
-    :func:`approximate_diameter` which runs in O(n) time.
+    Suitable for small datasets (n ≲ 5 000) due to the O(n² d) pairwise
+    distance evaluations. For large datasets, prefer
+    :func:`approximate_diameter` which runs in O(n d) time.
 
     Parameters
     ----------
@@ -129,9 +131,16 @@ def exact_diameter(
     Returns
     -------
     tuple of (d_max, idx_u, idx_v)
+
+    Raises
+    ------
+    ValueError
+        If ``points`` is empty.
     """
     n = len(points)
-    if n <= 1:
+    if n == 0:
+        raise ValueError("points must contain at least one point")
+    if n == 1:
         return 0.0, 0, 0
 
     best_dist = -1.0
@@ -165,6 +174,10 @@ def approximate_diameter(
     ``2 * n_starts`` one-to-all distance computations.
     """
     n = len(points)
+    if n == 0:
+        raise ValueError("points must contain at least one point")
+    if n == 1:
+        return 0.0, 0, 0
     all_indices = np.arange(n, dtype=np.intp)
 
     best_dist = -1.0

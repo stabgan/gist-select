@@ -98,7 +98,7 @@ def compute_objective(points, utility, metric, indices, lam, d_max):
     return g + lam * div
 
 
-def brute_force_optimal(points, utility, metric, k, lam):
+def brute_force_optimal(points, utility, metric, k, lam, d_max=None):
     """Enumerate all subsets of size 1..k, return the one maximising f(S).
 
     Returns ``(best_indices, best_f)`` where *best_indices* is a list of
@@ -107,7 +107,8 @@ def brute_force_optimal(points, utility, metric, k, lam):
     ``points`` must already be the result of ``metric.prepare(points)``.
     """
     n = len(points)
-    d_max = _max_pairwise_distance(points, metric)
+    if d_max is None:
+        d_max = _max_pairwise_distance(points, metric)
     best_indices: list[int] = []
     best_f = 0.0  # f(empty) = 0
 
@@ -2377,7 +2378,7 @@ class TestApproximateDiameter:
 
         # On a 50-point cloud in 5D, at least some trials should see improvement.
         # This is a soft statistical check — we just need *some* improvement.
-        assert improvements >= 0, "Diameter should be non-decreasing with more starts"
+        assert improvements > 0, "Expected at least one trial to improve with more starts"
 
 
 # ---------------------------------------------------------------------------
@@ -2419,17 +2420,17 @@ class TestParallelEquivalence:
 
         # Pre-compute diameter so both calls start from the same state.
         rng = np.random.default_rng(seed)
-        diam = approximate_diameter(prepared, metric, rng, n_starts=5)
+        diam = approximate_diameter(points, metric, rng, n_starts=5)
 
         # Sequential (n_jobs=1) — uses early stopping.
         result_seq = gist(
-            prepared, utility, metric, k,
+            points, utility, metric, k,
             lam=lam, eps=eps, n_jobs=1, seed=seed, diameter=diam,
         )
 
         # Parallel (n_jobs=2) — evaluates all thresholds.
         result_par = gist(
-            prepared, utility, metric, k,
+            points, utility, metric, k,
             lam=lam, eps=eps, n_jobs=2, seed=seed, diameter=diam,
         )
 
@@ -2514,12 +2515,12 @@ class TestEarlyStopping:
         prepared = metric.prepare(points)
 
         rng = np.random.default_rng(seed)
-        diam = approximate_diameter(prepared, metric, rng, n_starts=5)
+        diam = approximate_diameter(points, metric, rng, n_starts=5)
         d_max, u, v = diam
 
         # --- Sequential GIST (with early stopping) ---
         result_seq = gist(
-            prepared, utility, metric, k,
+            points, utility, metric, k,
             lam=lam, eps=eps, n_jobs=1, seed=seed, diameter=diam,
         )
 
@@ -2642,6 +2643,27 @@ class TestExactDiameter:
         )
 
     # -- Unit: edge cases (Req 19.4) ---------------------------------------
+
+    def test_exact_diameter_empty_raises(self):
+        """exact_diameter on an empty array raises ValueError.
+
+        Validates: Requirements 19.4
+        """
+        metric = EuclideanDistance()
+        pts = np.empty((0, 2), dtype=np.float64)
+        prepared = metric.prepare(pts)
+
+        with pytest.raises(ValueError, match="at least one point"):
+            exact_diameter(prepared, metric)
+
+    def test_approximate_diameter_empty_raises(self):
+        """approximate_diameter on an empty array raises ValueError."""
+        metric = EuclideanDistance()
+        pts = np.empty((0, 2), dtype=np.float64)
+        prepared = metric.prepare(pts)
+
+        with pytest.raises(ValueError, match="at least one point"):
+            approximate_diameter(prepared, metric, np.random.default_rng(42))
 
     def test_exact_diameter_single_point(self):
         """exact_diameter on a single point returns (0.0, 0, 0).
@@ -2873,11 +2895,11 @@ class TestExactVsApproximateDiameter:
 class TestGISTExactDiameterFlag:
     """Verify the exact_diameter parameter of gist().
 
-    Property 30: exact_diameter=True uses exact diameter (>= approximate).
+    Property 30: exact_diameter=True uses exact diameter.
     Property 31: exact_diameter=False (default) uses approximate diameter.
     Property 32: precomputed diameter= takes precedence over exact_diameter.
-    Property 33: exact_diameter=True objective >= exact_diameter=False objective.
-    Property 34: Both modes satisfy the approximation ratio guarantee.
+    Property 33: Both modes match when supplied the same diameter.
+    Property 34: Exact mode satisfies the approximation ratio guarantee.
 
     Validates: Requirements 21.1, 21.2, 21.3, 21.4, 21.5
     """
@@ -2886,12 +2908,8 @@ class TestGISTExactDiameterFlag:
 
     @paper_verification_settings
     @given(pts=random_points(n_max=10, d_max=4))
-    def test_exact_mode_diversity_geq_approx_mode(self, pts):
-        """gist(exact_diameter=True).diversity >= gist(exact_diameter=False).diversity.
-
-        Because exact_diameter >= approximate_diameter, the threshold set
-        built from the exact diameter is at least as wide, so the best
-        solution found can only be as good or better.
+    def test_exact_mode_uses_exact_diameter(self, pts):
+        """gist(exact_diameter=True) matches gist with precomputed exact diameter.
 
         Validates: Requirements 21.1, 21.3
         """
@@ -2901,17 +2919,18 @@ class TestGISTExactDiameterFlag:
         metric = EuclideanDistance()
         k = max(2, n // 2)
 
-        result_exact = gist(pts, utility, metric, k=k, lam=1.0, seed=42,
-                            exact_diameter=True)
-        result_approx = gist(pts, utility, metric, k=k, lam=1.0, seed=42,
-                             exact_diameter=False)
+        prepared = metric.prepare(pts.copy())
+        d_exact, u, v = exact_diameter(prepared, metric)
 
-        # The exact mode objective must be >= approximate mode objective
-        # because it has access to the true diameter.
-        assert result_exact.objective_value >= result_approx.objective_value - 1e-9, (
-            f"exact_diameter=True objective {result_exact.objective_value} < "
-            f"exact_diameter=False objective {result_approx.objective_value}"
+        result_flag = gist(pts, utility, metric, k=k, lam=1.0, seed=42,
+                           exact_diameter=True)
+        result_precomputed = gist(pts, utility, metric, k=k, lam=1.0, seed=42,
+                                  diameter=(d_exact, u, v))
+
+        assert result_flag.objective_value == pytest.approx(
+            result_precomputed.objective_value, rel=1e-9, abs=1e-12
         )
+        np.testing.assert_array_equal(result_flag.indices, result_precomputed.indices)
 
     # -- Property 31: default is approximate (Req 21.2) -------------------
 

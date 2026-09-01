@@ -167,10 +167,12 @@ def gist(
         diameter is computed according to ``exact_diameter``.
     exact_diameter : bool
         If ``True``, compute the exact diameter via O(n²) exhaustive
-        search.  This guarantees the paper's theoretical approximation
-        bounds hold exactly, but is only practical for small datasets
-        (n ≲ 50 000).  If ``False`` (default), use the fast multi-start
-        double-scan heuristic.  Ignored when ``diameter`` is provided.
+        search. When using a true metric (satisfying the triangle
+        inequality) and a monotone submodular utility, this guarantees
+        the paper's theoretical approximation bounds hold. Recommended
+        only for small datasets (n ≲ 5 000). If ``False`` (default), use
+        the fast multi-start double-scan heuristic. Ignored when
+        ``diameter`` is provided.
 
     Returns
     -------
